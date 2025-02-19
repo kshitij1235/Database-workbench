@@ -7,22 +7,33 @@ import { Plus } from "lucide-react";
 
 export function TableNode({ id, data, isConnectable }) {
   const [newColumnName, setNewColumnName] = useState("");
-  const [newColumnType, setNewColumnType] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddColumn = () => {
-    if (newColumnName && newColumnType) {
-      data.onAddColumn(id, newColumnName, newColumnType);
-      setNewColumnName("");
-      setNewColumnType("");
+    const parts = newColumnName.split(":");
+    if (parts.length === 2) {
+      const [name, type] = parts.map((part) => part.trim());
+      if (name && type) {
+        data.onAddColumn(id, name, type);
+        setNewColumnName("");
+        setIsAdding(false);
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleAddColumn();
+    } else if (e.key === "Escape") {
       setIsAdding(false);
+      setNewColumnName("");
     }
   };
 
   return (
     <Card className="w-64 shadow-lg rounded-lg border border-gray-200">
       <CardHeader className="bg-gray-100 rounded-t-lg p-3 flex justify-between items-center">
-        <CardTitle className="text-sm font-medium">{data.label}</CardTitle>
+        <CardTitle className="text-sm font-bold ">{data.label}</CardTitle>
       </CardHeader>
       <CardContent className="p-3">
         <div className="space-y-2">
@@ -31,18 +42,18 @@ export function TableNode({ id, data, isConnectable }) {
               <Handle
                 type="target"
                 position={Position.Left}
-                id={`${id}-${column.name}-target`} // Unique Handle ID
+                id={`${id}-${column.name}-target`}
                 isConnectable={isConnectable}
-                style={{ left: -15 }}
+                style={{ left: -18 ,height : 10 , width:10 }}
               />
               <span className="ml-3 font-medium">{column.name}</span>
               <span className="ml-auto mr-3 text-gray-500">{column.type}</span>
               <Handle
                 type="source"
                 position={Position.Right}
-                id={`${id}-${column.name}-source`} // Unique Handle ID
+                id={`${id}-${column.name}-source`}
                 isConnectable={isConnectable}
-                style={{ right: -15 }}
+                style={{ right: -18 , height : 10 , width:10}}
               />
             </div>
           ))}
@@ -53,20 +64,21 @@ export function TableNode({ id, data, isConnectable }) {
             <Input
               value={newColumnName}
               onChange={(e) => setNewColumnName(e.target.value)}
-              placeholder="Column name"
+              onKeyDown={handleKeyDown}
+              placeholder="Column name : type"
               className="text-sm"
             />
-            <Input
-              value={newColumnType}
-              onChange={(e) => setNewColumnType(e.target.value)}
-              placeholder="Column type"
-              className="text-sm"
-            />
+            <Button size="sm" variant="outline" className="bg-purple-500 text-white">
+                🔑
+            </Button>
+
             <div className="flex justify-end space-x-2">
               <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleAddColumn}>Add</Button>
+              <Button size="sm" onClick={handleAddColumn} disabled={newColumnName.split(":").length !== 2}>
+                Add
+              </Button>
             </div>
           </div>
         ) : (
