@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { parseDbml } from "@/lib/dbmlParser"
 import { exportToDbml } from "@/lib/dbmlExporter"
 import { exportToSql } from "@/lib/sqlExporter"
+import { toast } from "sonner"
+
 
 const nodeTypes = {
   table: TableNode,
@@ -16,17 +18,53 @@ const nodeTypes = {
 export default function Workbench() {
   const [nodes, setNodes] = useState([])
   const [edges, setEdges] = useState([])
+  const [selectedNodes, setSelectedNodes] = useState([])
 
-useEffect(() => {
-  const dbml = localStorage.getItem("dbml")
-  if (dbml) {
-    let parsedNodes = parseDbml(dbml)
-    
-    // Add onAddColumn to each node
-    parsedNodes = parsedNodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
+  useEffect(() => {
+    const dbml = localStorage.getItem("dbml")
+    if (dbml) {
+      let parsedNodes = parseDbml(dbml)
+
+      // Add onAddColumn to each node
+      parsedNodes = parsedNodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          onAddColumn: (id, name, type) => {
+            setNodes((prevNodes) =>
+              prevNodes.map((node) =>
+                node.id === id
+                  ? { 
+                      ...node, 
+                      data: { 
+                        ...node.data, 
+                        columns: [...node.data.columns, { name, type }] 
+                      } 
+                    }
+                  : node
+              )
+            )
+          }
+        }
+      }))
+      
+      setNodes(parsedNodes)
+      localStorage.removeItem("dbml")
+    }
+  }, [])
+
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [])
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [])
+  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [])
+
+  const addTable = useCallback(() => {
+    const newNode = {
+      id: `table-${Date.now()}`,
+      type: "table",
+      position: { x: 100, y: 100 },
+      data: { 
+        label: "New Table", 
+        columns: [], 
         onAddColumn: (id, name, type) => {
           setNodes((prevNodes) =>
             prevNodes.map((node) =>
@@ -42,58 +80,51 @@ useEffect(() => {
             )
           )
         }
-      }
-    }))
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+
     
-    setNodes(parsedNodes)
-    localStorage.removeItem("dbml")
-  }
-}, [])
+    toast("Success!", {
+      description: "New table created!",
+      duration: 1000, 
+      style: { backgroundColor: "green", color: "white" },
+    })
+  }, [])
 
+  // Track selected nodes
+  const onSelectionChange = useCallback(({ nodes }) => {
+    setSelectedNodes(nodes.map(node => node.id))
+  }, [])
 
-  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [])
-
-  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [])
-
-  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [])
-
- const addTable = useCallback(() => {
-  const newNode = {
-    id: `table-${Date.now()}`,
-    type: "table",
-    position: { x: 100, y: 100 },
-    data: { 
-      label: "New Table", 
-      columns: [], 
-      onAddColumn: (id, name, type) => {
-        setNodes((prevNodes) =>
-          prevNodes.map((node) =>
-            node.id === id
-              ? { 
-                  ...node, 
-                  data: { 
-                    ...node.data, 
-                    columns: [...node.data.columns, { name, type }] 
-                  } 
-                }
-              : node
-          )
-        )
-      }
-    },
-  }
-  setNodes((nds) => [...nds, newNode])
-}, [])
-
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.ctrlKey && event.key === "a") {
-        event.preventDefault()
-        addTable()
-      }
-    },
-    [addTable],
-  )
+  // Delete selected nodes when pressing Delete key
+  const handleKeyDown = useCallback((event) => {
+    if ((event.ctrlKey && event.key === "e") || (event.ctrlKey && event.key === "E")) {
+      event.preventDefault()
+      addTable()
+    } else if (event.key === "Delete" && selectedNodes.length > 0) {
+      setNodes((nds) => {
+        // Find deleted nodes
+        const deletedNodes = nds.filter(node => selectedNodes.includes(node.id))
+  
+        // Extract node labels (titles)
+        const deletedTitles = deletedNodes.map(node => node.data.label).join(", ")
+  
+        // Show toast notification
+        toast("Success!", {
+          description: `Deleted table(s): ${deletedTitles}`,
+          duration: 1000, 
+          style: { backgroundColor: "red", color: "white" },
+        })
+  
+        // Return the updated node list (without deleted nodes)
+        return nds.filter(node => !selectedNodes.includes(node.id))
+      })
+  
+      setSelectedNodes([]) 
+    }
+  }, [addTable, selectedNodes])
+  
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown)
@@ -141,6 +172,7 @@ useEffect(() => {
           nodeTypes={nodeTypes}
           nodesDraggable={true}
           elementsSelectable={true}
+          onSelectionChange={onSelectionChange} 
         >
           <Background />
           <Controls />
@@ -149,4 +181,3 @@ useEffect(() => {
     </div>
   )
 }
-
