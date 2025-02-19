@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus } from "lucide-react"
 
-export function TableNode({ id, data }) {
+export function TableNode({ id, data, isConnectable }) {
   const [newColumnName, setNewColumnName] = useState("")
   const [newColumnType, setNewColumnType] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -32,7 +32,13 @@ export function TableNode({ id, data }) {
             <li key={index} className="flex items-center justify-between text-sm">
               <span>{column.name}</span>
               <span className="text-xs text-gray-500">{column.type}</span>
-              <Handle type="source" position={Position.Right} id={`${id}-${column.name}`} className="w-3 h-3" />
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={`${id}-${column.name}`}
+                isConnectable={isConnectable}
+                className="w-3 h-3"
+              />
             </li>
           ))}
         </ul>
@@ -60,7 +66,7 @@ export function TableNode({ id, data }) {
           </Button>
         )}
       </CardContent>
-      <Handle type="target" position={Position.Left} className="w-3 h-3" />
+      <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="w-3 h-3" />
     </Card>
   )
 }
