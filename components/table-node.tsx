@@ -24,7 +24,9 @@ export function TableNode({ id, data, isConnectable }) {
   return (
     <Card className="w-[250px]">
       <CardHeader>
-        <CardTitle>{data.label}</CardTitle>
+        <CardTitle>
+          {data.label}
+          </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-1 mb-2">
