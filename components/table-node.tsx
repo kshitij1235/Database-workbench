@@ -1,51 +1,48 @@
-"use client"
-
-import { useState } from "react"
-import { Handle, Position } from "reactflow"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus } from "lucide-react"
+import { useState } from "react";
+import { Handle, Position } from "reactflow";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 
 export function TableNode({ id, data, isConnectable }) {
-  const [newColumnName, setNewColumnName] = useState("")
-  const [newColumnType, setNewColumnType] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
+  const [newColumnName, setNewColumnName] = useState("");
+  const [newColumnType, setNewColumnType] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleAddColumn = () => {
     if (newColumnName && newColumnType) {
-      data.onAddColumn(id, newColumnName, newColumnType)
-      setNewColumnName("")
-      setNewColumnType("")
-      setIsAdding(false)
+      data.onAddColumn(id, newColumnName, newColumnType);
+      setNewColumnName("");
+      setNewColumnType("");
+      setIsAdding(false);
     }
-  }
+  };
 
   return (
-    <Card className="w-[250px]">
-      <CardHeader>
-        <CardTitle>
-          {data.label}
-          </CardTitle>
+    <Card className="w-64 shadow-lg rounded-lg border border-gray-200">
+      <CardHeader className="bg-gray-100 rounded-t-lg p-3 flex justify-between items-center">
+        <CardTitle className="text-sm font-medium">{data.label}</CardTitle>
+        <Handle type="target" position={Position.Left} isConnectable={isConnectable} />
       </CardHeader>
-      <CardContent>
-        <ul className="space-y-1 mb-2">
+      <CardContent className="p-3">
+        <div className="space-y-2">
           {data.columns.map((column, index) => (
-            <li key={index} className="flex items-center justify-between text-sm">
-              <span>{column.name}</span>
-              <span className="text-xs text-gray-500">{column.type}</span>
+            <div key={index} className="flex justify-between text-sm border-b pb-1">
+              <span className="font-medium">{column.name}</span>
+              <span className="text-gray-500">{column.type}</span>
               <Handle
                 type="source"
                 position={Position.Right}
-                id={`${id}-${column.name}`}
                 isConnectable={isConnectable}
-                className="w-3 h-3"
+                className="w-2 h-2 bg-blue-500"
               />
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
+
         {isAdding ? (
-          <div className="space-y-2">
+          <div className="mt-3 space-y-2">
             <Input
               value={newColumnName}
               onChange={(e) => setNewColumnName(e.target.value)}
@@ -58,18 +55,23 @@ export function TableNode({ id, data, isConnectable }) {
               placeholder="Column type"
               className="text-sm"
             />
-            <Button onClick={handleAddColumn} size="sm" className="w-full">
-              Add
-            </Button>
+            <div className="flex justify-end space-x-2">
+              <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddColumn}>Add</Button>
+            </div>
           </div>
         ) : (
-          <Button onClick={() => setIsAdding(true)} size="sm" className="w-full">
-            <Plus className="w-4 h-4 mr-1" /> Add Column
+          <Button
+            onClick={() => setIsAdding(true)}
+            size="sm"
+            className="w-full mt-3 flex items-center justify-center gap-1"
+          >
+            <Plus size={14} /> Add Column
           </Button>
         )}
       </CardContent>
-      <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="w-3 h-3" />
     </Card>
-  )
+  );
 }
-
