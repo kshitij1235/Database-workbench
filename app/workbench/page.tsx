@@ -63,7 +63,7 @@ export default function Workbench() {
       type: "table",
       position: { x: 100, y: 100 },
       data: { 
-        label: "New Table", 
+        label: "Tablename", 
         columns: [], 
         onAddColumn: (id, name, type) => {
           setNodes((prevNodes) =>
@@ -102,25 +102,18 @@ export default function Workbench() {
     if ((event.ctrlKey && event.key === "e") || (event.ctrlKey && event.key === "E")) {
       event.preventDefault()
       addTable()
+
     } else if (event.key === "Delete" && selectedNodes.length > 0) {
       setNodes((nds) => {
-        // Find deleted nodes
         const deletedNodes = nds.filter(node => selectedNodes.includes(node.id))
-  
-        // Extract node labels (titles)
         const deletedTitles = deletedNodes.map(node => node.data.label).join(", ")
-  
-        // Show toast notification
         toast("Success!", {
           description: `Deleted table(s): ${deletedTitles}`,
           duration: 1000, 
           style: { backgroundColor: "red", color: "white" },
         })
-  
-        // Return the updated node list (without deleted nodes)
         return nds.filter(node => !selectedNodes.includes(node.id))
       })
-  
       setSelectedNodes([]) 
     }
   }, [addTable, selectedNodes])
