@@ -57,7 +57,7 @@ export function convertSqlToDbml(sql: string, dialect: "mysql" | "postgres"): st
     }
     
     // Generate DBML
-    let dbml = "// DBML generated from SQL\n\n";
+    let dbml = "";
     
     for (const table of tables) {
       dbml += `Table ${table.name} {\n`;
@@ -78,7 +78,7 @@ export function convertSqlToDbml(sql: string, dialect: "mysql" | "postgres"): st
       dbml += '}\n\n';
     }
     
-    return dbml || "// No tables found in SQL";
+    return dbml ;
   } catch (error) {
     console.error("Conversion error:", error);
     return `// Error converting SQL to DBML: ${error.message}\n// Manual conversion may be required`;
