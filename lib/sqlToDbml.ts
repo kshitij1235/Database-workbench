@@ -1,4 +1,4 @@
-import { parse } from 'sql-parser-mastic';
+import { Parser } from 'node-sql-parser';
 
 interface Column {
   name: string;
@@ -6,81 +6,81 @@ interface Column {
   constraints: string[];
 }
 
+interface ForeignKey {
+  column: string;
+  refTable: string;
+  refColumn: string;
+}
+
 interface Table {
   name: string;
   columns: Column[];
+  foreignKeys: ForeignKey[];
 }
 
 export function convertSqlToDbml(sql: string, dialect: "mysql" | "postgres"): string {
   try {
     console.log("Starting SQL to DBML conversion...");
-    
-    // Extract CREATE TABLE statements using regex
-    const tableRegex = /CREATE\s+TABLE\s+(?:`|"|')?(\w+)(?:`|"|')?\s*\(([\s\S]*?)\)/gi;
-    let match;
+    const parser = new Parser();
+    const ast = parser.astify(sql, { database: dialect });
+
     const tables: Table[] = [];
-    
-    // Process each table
-    while ((match = tableRegex.exec(sql)) !== null) {
-      const tableName = match[1];
-      const columnsText = match[2];
-      
-      // Parse columns
-      const columnRegex = /\s*(?:`|"|')?(\w+)(?:`|"|')?\s+([A-Za-z0-9()]+)(?:\s+(.*?))?(?:,|$)/g;
-      let columnMatch;
+
+    for (const statement of Array.isArray(ast) ? ast : [ast]) {
+      if (statement.type !== 'create') continue; // Ignore non-CREATE statements
+
+      const tableName = statement.table[0].table;
       const columns: Column[] = [];
-      
-      let columnText = columnsText.split(',');
-      for (const colLine of columnText) {
-        if (!colLine.trim()) continue;
-        
-        // Basic parsing of column definition
-        const parts = colLine.trim().split(/\s+/);
-        if (parts.length < 2) continue;
-        
-        const name = parts[0].replace(/`|"|'/g, '');
-        const type = parts[1];
-        
-        // Extract constraints
-        const constraints: string[] = [];
-        if (colLine.toUpperCase().includes('PRIMARY KEY')) {
-          constraints.push('pk');
+      const foreignKeys: ForeignKey[] = [];
+
+      for (const columnDef of statement.create_definitions) {
+        if (columnDef.resource === 'column') {
+          // Extract column details
+          const name = columnDef.column.column;
+          const type = columnDef.definition.dataType.toUpperCase();
+          const constraints: string[] = [];
+
+          if (columnDef.constraint?.primary_key) constraints.push('pk');
+          if (columnDef.definition.nullable === 'NOT NULL') constraints.push('not null');
+
+          columns.push({ name, type, constraints });
+        } 
+        else if (columnDef.resource === 'constraint' && columnDef.constraint_type === 'foreign key') {
+          // Handle Foreign Keys
+          foreignKeys.push({
+            column: columnDef.definition.column[0].column,
+            refTable: columnDef.reference.table[0].table,
+            refColumn: columnDef.reference.column[0].column,
+          });
         }
-        if (colLine.toUpperCase().includes('NOT NULL')) {
-          constraints.push('not null');
-        }
-        
-        columns.push({ name, type, constraints });
       }
-      
-      tables.push({ name: tableName, columns });
+
+      tables.push({ name: tableName, columns, foreignKeys });
     }
-    
-    // Generate DBML
+
+    // Generate DBML output
     let dbml = "";
-    
     for (const table of tables) {
       dbml += `Table ${table.name} {\n`;
-      
       for (const column of table.columns) {
         dbml += `  ${column.name} ${column.type}`;
-        
-        if (column.constraints.includes('pk')) {
-          dbml += ' [pk]';
+        if (column.constraints.length) {
+          dbml += ` [${column.constraints.join(", ")}]`;
         }
-        if (column.constraints.includes('not null')) {
-          dbml += ' [not null]';
-        }
-        
-        dbml += '\n';
+        dbml += "\n";
       }
-      
-      dbml += '}\n\n';
+      dbml += "}\n\n";
+
+      // Add Foreign Key Relationships
+      for (const fk of table.foreignKeys) {
+        dbml += `Ref: ${table.name}.${fk.column} > ${fk.refTable}.${fk.refColumn}\n`;
+      }
+      dbml += "\n";
     }
-    
-    return dbml ;
-  } catch (error) {
+
+    return dbml;
+  } catch (error :any) {
     console.error("Conversion error:", error);
-    return `// Error converting SQL to DBML: ${error.message}\n// Manual conversion may be required`;
+    return error.message;
   }
 }

@@ -11,6 +11,7 @@ import { exportToSql } from "@/lib/sqlExporter"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
+import { InfoBox } from "@/components/workbench-info-box"
 
 const nodeTypes = {
   table: TableNode,
@@ -204,7 +205,7 @@ export default function Workbench() {
   return (
     <div className="h-screen flex flex-col dark:bg-gray-900">
       <div className="p-4 bg-gray-100 dark:bg-gray-800 flex justify-between items-center">
-        <h1 className="text-2xl font-bold dark:text-white">Database Workbench</h1>
+        <a className="text-2xl font-bold dark:text-white" href="/Database-workbench">Database Workbench</a>
         <div className="space-x-2 flex items-center">
           <Button onClick={handleExportDbml}>Export DBML</Button>
           <Button onClick={handleExportSql}>Export SQL</Button>
@@ -229,13 +230,7 @@ export default function Workbench() {
           <Controls />
         </ReactFlow>
         {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-              <p className="text-lg font-semibold mb-2 dark:text-white">No tables yet</p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Press Ctrl + E to create a new table</p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Press Delete to remove selected tables</p>
-            </div>
-          </div>
+          <InfoBox/>
         )}
       </div>
     </div>
