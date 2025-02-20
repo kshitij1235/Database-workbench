@@ -20,7 +20,7 @@ interface Table {
 
 export function convertSqlToDbml(sql: string, dialect: "mysql" | "postgres"): string {
   try {
-    console.log("Starting SQL to DBML conversion...");
+
     const parser = new Parser();
     const ast = parser.astify(sql, { database: dialect });
 
