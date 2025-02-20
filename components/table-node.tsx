@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Handle, Position } from "reactflow"
+import { Handle, Position, type NodeProps, NodeResizer } from "reactflow"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Key } from "lucide-react"
+import { Node } from "postcss"
 
-export function TableNode({ id, data, isConnectable }) {
+export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const [newColumnName, setNewColumnName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
@@ -56,91 +57,98 @@ export function TableNode({ id, data, isConnectable }) {
   )
 
   return (
-    <Card className="w-64 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
-      <CardHeader className="bg-gray-100 dark:bg-gray-700 rounded-t-lg p-3 flex justify-between items-center">
-        {isEditingName ? (
-          <Input
-            value={tableName}
-            onChange={(e) => setTableName(e.target.value)}
-            onKeyDown={handleTableNameKeyDown}
-            onBlur={() => {
-              setIsEditingName(false)
-              data.onUpdateTableName(id, tableName)
-            }}
-            className="text-sm font-bold dark:bg-gray-600 dark:text-white"
-            autoFocus
-          />
-        ) : (
-          <CardTitle
-            className="text-sm font-bold cursor-pointer dark:text-white"
-            onClick={() => setIsEditingName(true)}
-          >
-            {data.label}
-          </CardTitle>
-        )}
-      </CardHeader>
-      <CardContent className="p-3 dark:bg-gray-800">
-        <div className="space-y-2">
-          {data.columns.map((column, index) => (
-            <div key={index} className="relative flex items-center text-sm border-b dark:border-gray-700 pb-1">
-              <Handle
-                type="target"
-                position={Position.Left}
-                id={`${id}-${column.name}-target`}
-                isConnectable={isConnectable}
-                style={{ left: -18, height: 10, width: 10 }}
-              />
-              <span className="ml-3 font-medium dark:text-white">{column.name}</span>
-              <span className="ml-auto mr-3 text-gray-500 dark:text-gray-400">{column.type}</span>
-              {column.isPrimaryKey && <Key size={14} className="text-yellow-500 mr-1" />}
-              <Button
-                size="sm"
-                variant="ghost"
-                className={`p-0 h-6 w-6 ${column.isPrimaryKey ? "text-yellow-500" : "text-gray-400 dark:text-gray-500"}`}
-                onClick={() => togglePrimaryKey(column.name)}
-              >
-                🔑
-              </Button>
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={`${id}-${column.name}-source`}
-                isConnectable={isConnectable}
-                style={{ right: -18, height: 10, width: 10 }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {isAdding ? (
-          <div className="mt-3 space-y-2">
+    <>
+      <Card
+        className={`shadow-lg rounded-lg border min-w-[250px] min-h-[150px] ${
+          selected ? "border-blue-500" : "border-gray-200 dark:border-gray-700"
+        } dark:bg-gray-800`}
+        style={{ width: "auto", minHeight: "150px" }} 
+      >
+        <CardHeader className="bg-gray-100 dark:bg-gray-700 rounded-t-lg p-3 flex justify-between items-center">
+          {isEditingName ? (
             <Input
-              value={newColumnName}
-              onChange={(e) => setNewColumnName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Column name : type"
-              className="text-sm dark:bg-gray-700 dark:text-white"
+              value={tableName}
+              onChange={(e) => setTableName(e.target.value)}
+              onKeyDown={handleTableNameKeyDown}
+              onBlur={() => {
+                setIsEditingName(false)
+                data.onUpdateTableName(id, tableName)
+              }}
+              className="text-sm font-bold dark:bg-gray-600 dark:text-white"
+              autoFocus
             />
-            <div className="flex justify-end space-x-2">
-              <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleAddColumn} disabled={newColumnName.split(":").length !== 2}>
-                Add
-              </Button>
-            </div>
+          ) : (
+            <CardTitle
+              className="text-sm font-bold cursor-pointer dark:text-white"
+              onClick={() => setIsEditingName(true)}
+            >
+              {data.label}
+            </CardTitle>
+          )}
+        </CardHeader>
+
+        <CardContent className="p-3 dark:bg-gray-800">
+          <div className="space-y-2">
+            {data.columns.map((column, index) => (
+              <div key={index} className="relative flex items-center text-sm border-b dark:border-gray-700 pb-1">
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id={`${id}-${column.name}-target`}
+                  isConnectable={isConnectable}
+                  style={{ left: -18, height: 10, width: 10 }}
+                />
+                <span className="ml-3 font-medium dark:text-white">{column.name}</span>
+                <span className="ml-auto mr-3 text-gray-500 dark:text-gray-400">{column.type}</span>
+                {column.isPrimaryKey && <Key size={14} className="text-yellow-500 mr-1" />}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`p-0 h-6 w-6 ${column.isPrimaryKey ? "text-yellow-500" : "text-gray-400 dark:text-gray-500"}`}
+                  onClick={() => togglePrimaryKey(column.name)}
+                >
+                  🔑
+                </Button>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={`${id}-${column.name}-source`}
+                  isConnectable={isConnectable}
+                  style={{ right: -18, height: 10, width: 10 }}
+                />
+              </div>
+            ))}
           </div>
-        ) : (
-          <Button
-            onClick={() => setIsAdding(true)}
-            size="sm"
-            className="w-full mt-3 flex items-center justify-center gap-1 dark:bg-gray-700 dark:text-white"
-          >
-            <Plus size={14} /> Add Column
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+
+          {isAdding ? (
+            <div className="mt-3 space-y-2">
+              <Input
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Column name : type"
+                className="text-sm dark:bg-gray-700 dark:text-white"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleAddColumn} disabled={newColumnName.split(":").length !== 2}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setIsAdding(true)}
+              size="sm"
+              className="w-full mt-3 flex items-center justify-center gap-1 dark:bg-gray-700 dark:text-white"
+            >
+              <Plus size={14} /> Add Column
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    </>
   )
 }
-
