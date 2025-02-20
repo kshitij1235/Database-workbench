@@ -6,16 +6,25 @@ import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { convertSqlToDbml } from "@/lib/sqlToDbml"
+import { useTheme } from "next-themes"
 
 export default function Home() {
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
-
-  const handleFileUpload = async (event) => {
+  const { theme, setTheme } = useTheme()
+  
+  // Set the theme to light
+  setTheme("light")
+  
+  // File upload handler
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault() // Prevent accidental form submission
-    const file = event.target.files[0]
     
-    if (!file) return
+    const file = event.target.files ? event.target.files[0] : null;
+    if (!file) {
+      alert("No file selected");
+      return;
+    }
 
     setIsUploading(true)
 
@@ -24,19 +33,31 @@ export default function Home() {
     reader.onload = async function () {
       const sql = reader.result
 
-      try {
-        const dbml = await convertSqlToDbml(sql)
-        localStorage.setItem("dbml", dbml)
-        router.push("/workbench")
-      } catch (error) {
-        console.error("Error converting SQL to DBML:", error)
-        alert("Error converting SQL to DBML. Please check your SQL file.")
-      } finally {
-        setIsUploading(false)
+      if (sql && typeof sql === "string") {
+        try {
+          const dbml = await convertSqlToDbml(sql)
+          localStorage.setItem("dbml", dbml)
+          router.push("/workbench")
+        } catch (error) {
+          console.error("Error converting SQL to DBML:", error)
+          alert("Error converting SQL to DBML. Please check your SQL file.")
+        } finally {
+          setIsUploading(false)
+        }
+      } else {
+        console.error("Failed to read the SQL file");
+        alert("Failed to read the SQL file");
+        setIsUploading(false);
       }
     }
 
-    reader.readAsText(file)
+    reader.onerror = function (error) {
+      console.error("Error reading file:", error)
+      alert("There was an error reading the file");
+      setIsUploading(false);
+    }
+
+    reader.readAsText(file) // Read the file as text
   }
 
   return (
@@ -49,19 +70,23 @@ export default function Home() {
             <CardDescription>Import an existing database structure</CardDescription>
           </CardHeader>
           <CardContent>
-            <label className="cursor-pointer w-full flex items-center justify-center">
-              <input
-                type="file"
-                accept=".sql"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-              <Button className="w-full flex items-center justify-center" disabled={isUploading}>
-                <Upload className="mr-2 h-4 w-4" />
-                {isUploading ? "Converting..." : "Choose SQL File"}
-              </Button>
-            </label>
+          <label htmlFor="fileinput" className="w-full">
+  <input
+    id="fileinput"
+    type="file"
+    accept=".sql"
+    className="hidden"
+    onChange={handleFileUpload}
+    disabled={isUploading}
+  />
+  <Button className="w-full flex items-center justify-center" asChild disabled={isUploading}>
+    <span>
+      <Upload className="mr-2 h-4 w-4" />
+      {isUploading ? "Converting..." : "Choose SQL File"}
+    </span>
+  </Button>
+</label>
+
           </CardContent>
         </Card>
         <Card className="w-[300px]">
@@ -79,4 +104,3 @@ export default function Home() {
     </div>
   )
 }
-
