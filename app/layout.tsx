@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { ToasterComponent } from "@/components/ui/toastersooner"
-
+import { ThemeProvider } from "@/components/theme-provider"
 export const metadata: Metadata = {
   title: 'Database_Workbench',
   description: 'Let you design database.',
@@ -12,8 +12,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {children}
+
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
         <ToasterComponent/>
+        </ThemeProvider>
       </body>
     </html>
   )

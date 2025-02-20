@@ -56,8 +56,8 @@ export function TableNode({ id, data, isConnectable }) {
   )
 
   return (
-    <Card className="w-64 shadow-lg rounded-lg border border-gray-200">
-      <CardHeader className="bg-gray-100 rounded-t-lg p-3 flex justify-between items-center">
+    <Card className="w-64 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
+      <CardHeader className="bg-gray-100 dark:bg-gray-700 rounded-t-lg p-3 flex justify-between items-center">
         {isEditingName ? (
           <Input
             value={tableName}
@@ -67,19 +67,22 @@ export function TableNode({ id, data, isConnectable }) {
               setIsEditingName(false)
               data.onUpdateTableName(id, tableName)
             }}
-            className="text-sm font-bold"
+            className="text-sm font-bold dark:bg-gray-600 dark:text-white"
             autoFocus
           />
         ) : (
-          <CardTitle className="text-sm font-bold cursor-pointer" onClick={() => setIsEditingName(true)}>
+          <CardTitle
+            className="text-sm font-bold cursor-pointer dark:text-white"
+            onClick={() => setIsEditingName(true)}
+          >
             {data.label}
           </CardTitle>
         )}
       </CardHeader>
-      <CardContent className="p-3">
+      <CardContent className="p-3 dark:bg-gray-800">
         <div className="space-y-2">
           {data.columns.map((column, index) => (
-            <div key={index} className="relative flex items-center text-sm border-b pb-1">
+            <div key={index} className="relative flex items-center text-sm border-b dark:border-gray-700 pb-1">
               <Handle
                 type="target"
                 position={Position.Left}
@@ -87,13 +90,13 @@ export function TableNode({ id, data, isConnectable }) {
                 isConnectable={isConnectable}
                 style={{ left: -18, height: 10, width: 10 }}
               />
-              <span className="ml-3 font-medium">{column.name}</span>
-              <span className="ml-auto mr-3 text-gray-500">{column.type}</span>
+              <span className="ml-3 font-medium dark:text-white">{column.name}</span>
+              <span className="ml-auto mr-3 text-gray-500 dark:text-gray-400">{column.type}</span>
               {column.isPrimaryKey && <Key size={14} className="text-yellow-500 mr-1" />}
               <Button
                 size="sm"
                 variant="ghost"
-                className={`p-0 h-6 w-6 ${column.isPrimaryKey ? "text-yellow-500" : "text-gray-400"}`}
+                className={`p-0 h-6 w-6 ${column.isPrimaryKey ? "text-yellow-500" : "text-gray-400 dark:text-gray-500"}`}
                 onClick={() => togglePrimaryKey(column.name)}
               >
                 🔑
@@ -116,7 +119,7 @@ export function TableNode({ id, data, isConnectable }) {
               onChange={(e) => setNewColumnName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Column name : type"
-              className="text-sm"
+              className="text-sm dark:bg-gray-700 dark:text-white"
             />
             <div className="flex justify-end space-x-2">
               <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
@@ -131,7 +134,7 @@ export function TableNode({ id, data, isConnectable }) {
           <Button
             onClick={() => setIsAdding(true)}
             size="sm"
-            className="w-full mt-3 flex items-center justify-center gap-1"
+            className="w-full mt-3 flex items-center justify-center gap-1 dark:bg-gray-700 dark:text-white"
           >
             <Plus size={14} /> Add Column
           </Button>

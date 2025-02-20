@@ -9,6 +9,8 @@ import { parseDbml } from "@/lib/dbmlParser"
 import { exportToDbml } from "@/lib/dbmlExporter"
 import { exportToSql } from "@/lib/sqlExporter"
 import { toast } from "sonner"
+import { useTheme } from "next-themes"
+import { Moon, Sun } from "lucide-react"
 
 const nodeTypes = {
   table: TableNode,
@@ -42,12 +44,34 @@ export default function Workbench() {
     )
   }, [])
 
-  // Update the addTable function to include these new callbacks
+  // Add this function inside the Workbench component, before the return statement
+  const getNewNodePosition = useCallback(() => {
+    const padding = 20
+    const nodeWidth = 250
+    const nodeHeight = 300
+    const existingPositions = nodes.map((node) => node.position)
+    const newPos = { x: padding, y: padding }
+
+    while (
+      existingPositions.some((pos) => Math.abs(pos.x - newPos.x) < nodeWidth && Math.abs(pos.y - newPos.y) < nodeHeight)
+    ) {
+      if (newPos.x + nodeWidth + padding < window.innerWidth) {
+        newPos.x += nodeWidth + padding
+      } else {
+        newPos.x = padding
+        newPos.y += nodeHeight + padding
+      }
+    }
+
+    return newPos
+  }, [nodes])
+
+  // Update the addTable function
   const addTable = useCallback(() => {
     const newNode = {
       id: `table-${Date.now()}`,
       type: "table",
-      position: { x: 100, y: 100 },
+      position: getNewNodePosition(),
       data: {
         label: "New Table",
         columns: [],
@@ -77,7 +101,10 @@ export default function Workbench() {
       duration: 1000,
       style: { backgroundColor: "green", color: "white" },
     })
-  }, [onUpdateTableName, onTogglePrimaryKey])
+  }, [onUpdateTableName, onTogglePrimaryKey, getNewNodePosition])
+
+  // Add this inside the Workbench component
+  const { theme, setTheme } = useTheme()
 
   // Update the useEffect that loads DBML data to include the new callbacks
   useEffect(() => {
@@ -173,16 +200,20 @@ export default function Workbench() {
     a.click()
   }
 
+  // Update the return statement to include the theme toggle and user guidance
   return (
-    <div className="h-screen flex flex-col">
-      <div className="p-4 bg-gray-100 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Database Workbench</h1>
-        <div className="space-x-2">
+    <div className="h-screen flex flex-col dark:bg-gray-900">
+      <div className="p-4 bg-gray-100 dark:bg-gray-800 flex justify-between items-center">
+        <h1 className="text-2xl font-bold dark:text-white">Database Workbench</h1>
+        <div className="space-x-2 flex items-center">
           <Button onClick={handleExportDbml}>Export DBML</Button>
           <Button onClick={handleExportSql}>Export SQL</Button>
+          <Button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
-      <div className="flex-grow">
+      <div className="flex-grow relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -197,6 +228,15 @@ export default function Workbench() {
           <Background />
           <Controls />
         </ReactFlow>
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <p className="text-lg font-semibold mb-2 dark:text-white">No tables yet</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Press Ctrl + E to create a new table</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Press Delete to remove selected tables</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
