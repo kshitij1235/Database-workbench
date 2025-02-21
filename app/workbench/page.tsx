@@ -1,51 +1,80 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import ReactFlow, { Background, Controls, applyNodeChanges, applyEdgeChanges, addEdge } from "reactflow"
+import ReactFlow, {
+  Background,
+  Controls,
+  addEdge,
+  type Edge,
+  type Connection,
+  useNodesState,
+  useEdgesState,
+} from "reactflow"
 import "reactflow/dist/style.css"
 import { TableNode } from "@/components/table-node"
 import { Button } from "@/components/ui/button"
 import { parseDbml } from "@/lib/dbmlParser"
 import { exportToDbml } from "@/lib/dbmlExporter"
 import { exportToSql } from "@/lib/sqlExporter"
-import { toast } from "sonner"
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 import { InfoBox } from "@/components/workbench-info-box"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
+import { ExportDropdown } from "./exportOptionDropDown"
 
 const nodeTypes = {
   table: TableNode,
 }
 
 export default function Workbench() {
-  const [nodes, setNodes] = useState([])
-  const [edges, setEdges] = useState([])
+  const { theme, setTheme } = useTheme()
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNodes, setSelectedNodes] = useState([])
 
-  // Add these functions inside the Workbench component
+  const onUpdateTableName = useCallback(
+    (id, newName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => (node.id === id ? { ...node, data: { ...node.data, label: newName } } : node)),
+      )
+    },
+    [setNodes],
+  )
 
-  const onUpdateTableName = useCallback((id, newName) => {
-    setNodes((prevNodes) =>
-      prevNodes.map((node) => (node.id === id ? { ...node, data: { ...node.data, label: newName } } : node)),
-    )
-  }, [])
+  const onTogglePrimaryKey = useCallback(
+    (id, columnName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = node.data.columns.map((col) => ({
+              ...col,
+              isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : false,
+            }))
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
 
-  const onTogglePrimaryKey = useCallback((id, columnName) => {
-    setNodes((prevNodes) =>
-      prevNodes.map((node) => {
-        if (node.id === id) {
-          const updatedColumns = node.data.columns.map((col) => ({
-            ...col,
-            isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : false,
-          }))
-          return { ...node, data: { ...node.data, columns: updatedColumns } }
-        }
-        return node
-      }),
-    )
-  }, [])
+  const onUpdateColumn = useCallback(
+    (id, index, newName, newType) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = [...node.data.columns]
+            updatedColumns[index] = { ...updatedColumns[index], name: newName, type: newType }
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
 
-  // Add this function inside the Workbench component, before the return statement
   const getNewNodePosition = useCallback(() => {
     const padding = 20
     const nodeWidth = 250
@@ -67,7 +96,6 @@ export default function Workbench() {
     return newPos
   }, [nodes])
 
-  // Update the addTable function
   const addTable = useCallback(() => {
     const newNode = {
       id: `table-${Date.now()}`,
@@ -93,21 +121,13 @@ export default function Workbench() {
         },
         onUpdateTableName,
         onTogglePrimaryKey,
+        onUpdateColumn,
       },
     }
     setNodes((nds) => [...nds, newNode])
+  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, getNewNodePosition, setNodes])
 
-    toast("Success!", {
-      description: "New table created!",
-      duration: 1000,
-      style: { backgroundColor: "green", color: "white" },
-    })
-  }, [onUpdateTableName, onTogglePrimaryKey, getNewNodePosition])
 
-  // Add this inside the Workbench component
-  const { theme, setTheme } = useTheme()
-
-  // Update the useEffect that loads DBML data to include the new callbacks
   useEffect(() => {
     const dbml = localStorage.getItem("dbml")
     if (dbml) {
@@ -134,44 +154,36 @@ export default function Workbench() {
           },
           onUpdateTableName,
           onTogglePrimaryKey,
+          onUpdateColumn,
         },
       }))
 
       setNodes(parsedNodes)
       localStorage.removeItem("dbml")
     }
-  }, [onUpdateTableName, onTogglePrimaryKey])
+  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, setNodes])
 
-  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [])
-  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [])
-  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [])
+  const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
-  // Track selected nodes
-  const onSelectionChange = useCallback(({ nodes }) => {
+  const onSelectionChange = useCallback(({ nodes, edges }) => {
     setSelectedNodes(nodes.map((node) => node.id))
   }, [])
 
-  // Delete selected nodes when pressing Delete key
   const handleKeyDown = useCallback(
     (event) => {
       if ((event.ctrlKey && event.key === "e") || (event.ctrlKey && event.key === "E")) {
         event.preventDefault()
         addTable()
-      } else if (event.key === "Delete" && selectedNodes.length > 0) {
-        setNodes((nds) => {
-          const deletedNodes = nds.filter((node) => selectedNodes.includes(node.id))
-          const deletedTitles = deletedNodes.map((node) => node.data.label).join(", ")
-          toast("Success!", {
-            description: `Deleted table(s): ${deletedTitles}`,
-            duration: 1000,
-            style: { backgroundColor: "red", color: "white" },
-          })
-          return nds.filter((node) => !selectedNodes.includes(node.id))
-        })
-        setSelectedNodes([])
+      } else if (event.key === "Delete") {
+        if (selectedNodes.length > 0) {
+          setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)))
+          setSelectedNodes([])
+        } else {
+          setEdges((eds) => eds.filter((edge) => !edge.selected))
+        }
       }
     },
-    [addTable, selectedNodes],
+    [addTable, selectedNodes, setNodes, setEdges],
   )
 
   useEffect(() => {
@@ -180,6 +192,7 @@ export default function Workbench() {
       document.removeEventListener("keydown", handleKeyDown)
     }
   }, [handleKeyDown])
+
 
   const handleExportDbml = () => {
     const dbml = exportToDbml(nodes, edges)
@@ -201,14 +214,15 @@ export default function Workbench() {
     a.click()
   }
 
-  // Update the return statement to include the theme toggle and user guidance
   return (
     <div className="h-screen flex flex-col dark:bg-gray-900">
       <div className="p-4 bg-gray-100 dark:bg-gray-800 flex justify-between items-center">
-        <a className="text-2xl font-bold dark:text-white" href="/Database-workbench">Database Workbench</a>
+        <a className="text-2xl font-bold dark:text-white" href="/Database-workbench">
+          Workbench
+        </a>
         <div className="space-x-2 flex items-center">
-          <Button onClick={handleExportDbml}>Export DBML</Button>
-          <Button onClick={handleExportSql}>Export SQL</Button>
+        <ExportDropdown onExportDbml={handleExportDbml} onExportSql={handleExportSql} />
+
           <Button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -225,13 +239,14 @@ export default function Workbench() {
           nodesDraggable={true}
           elementsSelectable={true}
           onSelectionChange={onSelectionChange}
+          deleteKeyCode={null}
+          multiSelectionKeyCode={null}
+          selectionKeyCode={null}
         >
           <Background />
           <Controls />
         </ReactFlow>
-        {nodes.length === 0 && (
-          <InfoBox/>
-        )}
+        {nodes.length === 0 && <InfoBox />}
       </div>
     </div>
   )
