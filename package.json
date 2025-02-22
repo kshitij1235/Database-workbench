@@ -2,11 +2,12 @@
   "name": "Database_Workbench",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build && next export",
-    "deploy": "npm run build && gh-pages -d out"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "deploy": "npm run build && gh-pages -d out"
+}
+,
   "dependencies": {
     "@dbml/cli": "^3.9.6",
     "@dbml/core": "^3.9.6",
