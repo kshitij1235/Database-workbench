@@ -21,8 +21,8 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  basePath: "/",
-  assetPrefix: "/Database-workbench/",
+  basePath: "",
+  assetPrefix: "",
   output: "export", 
 };
 
