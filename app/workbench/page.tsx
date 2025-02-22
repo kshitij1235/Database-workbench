@@ -217,7 +217,7 @@ export default function Workbench() {
   return (
     <div className="h-screen flex flex-col dark:bg-gray-900">
       <div className="p-4 bg-gray-100 dark:bg-gray-800 flex justify-between items-center">
-        <a className="text-2xl font-bold dark:text-white" href="/Database-workbench">
+        <a className="text-2xl font-bold dark:text-white" href="/">
           Workbench
         </a>
         <div className="space-x-2 flex items-center">
