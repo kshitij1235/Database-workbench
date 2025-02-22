@@ -1,86 +1,108 @@
-import { Parser } from 'node-sql-parser';
+import { importer } from '@dbml/core';
+import path from 'path';
 
-interface Column {
-  name: string;
-  type: string;
-  constraints: string[];
+// Define types for input paths
+type InputPaths = string | string[];
+
+// Function to resolve paths, ensuring all paths are absolute paths
+function resolvePaths(paths: InputPaths): string | string[] {
+    if (!Array.isArray(paths)) {
+        return path.resolve(process.cwd(), paths);
+    }
+    return paths.map((_path) => path.resolve(process.cwd(), _path));
 }
 
-interface ForeignKey {
-  column: string;
-  refTable: string;
-  refColumn: string;
-}
+// Class to handle writing to an output string
+class OutputStringPlugin {
+    private content: string;
 
-interface Table {
-  name: string;
-  columns: Column[];
-  foreignKeys: ForeignKey[];
-}
-
-export function convertSqlToDbml(sql: string, dialect: "mysql" | "postgres"): string {
-  try {
-
-    const parser = new Parser();
-    const ast = parser.astify(sql, { database: dialect });
-
-    const tables: Table[] = [];
-
-    for (const statement of Array.isArray(ast) ? ast : [ast]) {
-      if (statement.type !== 'create') continue; // Ignore non-CREATE statements
-
-      const tableName = statement.table[0].table;
-      const columns: Column[] = [];
-      const foreignKeys: ForeignKey[] = [];
-
-      for (const columnDef of statement.create_definitions) {
-        if (columnDef.resource === 'column') {
-          // Extract column details
-          const name = columnDef.column.column;
-          const type = columnDef.definition.dataType.toUpperCase();
-          const constraints: string[] = [];
-
-          if (columnDef.constraint?.primary_key) constraints.push('pk');
-          if (columnDef.definition.nullable === 'NOT NULL') constraints.push('not null');
-
-          columns.push({ name, type, constraints });
-        } 
-        else if (columnDef.resource === 'constraint' && columnDef.constraint_type === 'foreign key') {
-          // Handle Foreign Keys
-          foreignKeys.push({
-            column: columnDef.definition.column[0].column,
-            refTable: columnDef.reference.table[0].table,
-            refColumn: columnDef.reference.column[0].column,
-          });
-        }
-      }
-
-      tables.push({ name: tableName, columns, foreignKeys });
+    constructor() {
+        this.content = '';
     }
 
-    // Generate DBML output
-    let dbml = "";
-    for (const table of tables) {
-      dbml += `Table ${table.name} {\n`;
-      for (const column of table.columns) {
-        dbml += `  ${column.name} ${column.type}`;
-        if (column.constraints.length) {
-          dbml += ` [${column.constraints.join(", ")}]`;
-        }
-        dbml += "\n";
-      }
-      dbml += "}\n\n";
-
-      // Add Foreign Key Relationships
-      for (const fk of table.foreignKeys) {
-        dbml += `Ref: ${table.name}.${fk.column} > ${fk.refTable}.${fk.refColumn}\n`;
-      }
-      dbml += "\n";
+    // Method to write data into the content
+    write(data: string): void {
+        this.content += data;
     }
 
-    return dbml;
-  } catch (error :any) {
-    console.error("Conversion error:", error);
-    return error.message;
-  }
+    // Method to get the current content
+    getContent(): string {
+        return this.content;
+    }
 }
+
+// Function to generate DBML text from SQL input
+async function generate(input: string, transform: (sql: string) => Promise<any>, outputPlugin: OutputStringPlugin): Promise<void> {
+    try {
+        const content = await transform(input);  // Await the promise returned by transform
+        outputPlugin.write(content);  // Write the content to the plugin
+    } catch (e: any) {
+        console.error("Error details:", e);
+        throw e;
+    }
+}
+
+/**
+ * Converts MySQL text to DBML text.
+ * 
+ * @param {string} mysqlText - The MySQL text to convert.
+ * @returns {Promise<string>} The DBML output as a string. Rejects with an error message if conversion fails.
+ */
+async function convertSqlToDbml(mysqlText: string): Promise<string> {
+    try {
+        const outputPlugin = new OutputStringPlugin();
+
+        // Use the generate function to process the input
+        await generate(mysqlText, (sql: string) => {
+            return new Promise((resolve, reject) => {
+                try {
+                    // Use the importer to convert SQL to DBML
+                    const result = importer.import(sql, 'mysql');
+                    resolve(result);  // Resolve with the DBML result
+                } catch (error) {
+                    reject(error);  // Reject if an error occurs
+                }
+            });
+        }, outputPlugin);
+
+        // Log the final content to inspect what is being returned
+        let finalContent = outputPlugin.getContent();
+        console.log("Final DBML Content:", finalContent);
+
+        // Regular expression to extract the content of tables (ignores everything outside)
+        const tableRegex = /Table\s+"([\w\d_]+)"\s*\{([\s\S]*?)\}/g;
+
+        let match;
+        let result = '';
+
+        // Loop through all matches for tables
+        while ((match = tableRegex.exec(finalContent)) !== null) {
+            const tableName = match[1];
+            const tableContent = match[2];
+
+            // Process columns, filtering out anything that's not a column definition
+            const columnRegex = /"([\w\d_]+)"\s+([\w\d(),]+)\s*(?:\[.*\])?/g;
+            let columnMatch;
+            let columns: string[] = [];
+
+            while ((columnMatch = columnRegex.exec(tableContent)) !== null) {
+                const columnName = columnMatch[1];
+                const columnType = columnMatch[2];
+                columns.push(`${columnName}: ${columnType}`);
+            }
+
+            // Add the table and its columns to the result
+            result += `Table ${tableName} {\n  ${columns.join('\n  ')}\n}\n`;
+        }
+
+        // Log the final cleaned DBML content
+        console.log("Cleaned DBML Content:", result);
+
+        return result;
+    } catch (error) {
+        console.error("Conversion error:", error);
+        throw error;
+    }
+}
+
+export default convertSqlToDbml;
