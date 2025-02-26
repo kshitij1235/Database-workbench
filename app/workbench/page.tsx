@@ -21,6 +21,8 @@ import { Moon, Sun } from "lucide-react"
 import { InfoBox } from "@/components/workbench-info-box"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 import { ExportDropdown } from "./exportOptionDropDown"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 const nodeTypes = {
   table: TableNode,
@@ -31,7 +33,8 @@ export default function Workbench() {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNodes, setSelectedNodes] = useState([])
-
+  const { toast } = useToast()
+  
   const onUpdateTableName = useCallback(
     (id, newName) => {
       setNodes((prevNodes) =>
@@ -58,6 +61,28 @@ export default function Workbench() {
     },
     [setNodes],
   )
+
+
+  const onDeleteColumn = useCallback(
+    (id, index) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = [...node.data.columns]
+            updatedColumns.splice(index, 1)
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+      toast({
+        title: "Column Deleted",
+        description: "The column has been removed from the table.",
+      })
+    },
+    [setNodes, toast],
+  )
+
 
   const onUpdateColumn = useCallback(
     (id, index, newName, newType) => {
@@ -122,11 +147,15 @@ export default function Workbench() {
         onUpdateTableName,
         onTogglePrimaryKey,
         onUpdateColumn,
+        onDeleteColumn,
       },
     }
     setNodes((nds) => [...nds, newNode])
-  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, getNewNodePosition, setNodes])
-
+    toast({
+      title: "Table Created",
+      description: "A new table has been added to your database schema.",
+    })
+  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, getNewNodePosition, setNodes, toast])
 
   useEffect(() => {
     const dbml = localStorage.getItem("dbml")
@@ -155,13 +184,14 @@ export default function Workbench() {
           onUpdateTableName,
           onTogglePrimaryKey,
           onUpdateColumn,
+          onDeleteColumn,
         },
       }))
 
       setNodes(parsedNodes)
       localStorage.removeItem("dbml")
     }
-  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, setNodes])
+  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn,setNodes])
 
   const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
@@ -248,6 +278,7 @@ export default function Workbench() {
         </ReactFlow>
         {nodes.length === 0 && <InfoBox />}
       </div>
+      <Toaster />
     </div>
   )
 }

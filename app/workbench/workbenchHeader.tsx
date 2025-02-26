@@ -8,7 +8,7 @@ export function WorkbenchHeader({ onExportDbml, onExportSql }) {
 
   return (
     <>
-      <a className="text-2xl font-bold dark:text-white" href="/Database-workbench">
+      <a className="text-2xl font-bold dark:text-white" href="/">
         Workbench
       </a>
       <div className="space-x-2 flex items-center">

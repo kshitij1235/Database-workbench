@@ -17,7 +17,7 @@ export function ExportDropdown({ onExportDbml, onExportSql }: ExportDropdownProp
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="bg-white text-black">
           <Download className="w-4 h-4 mr-2" /> Export
         </Button>
       </DropdownMenuTrigger>

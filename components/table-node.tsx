@@ -5,7 +5,7 @@ import { Handle, Position, type NodeProps } from "reactflow"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Key, Edit2 } from "lucide-react"
+import { Plus, Key, Edit2, Trash2 } from "lucide-react"
 
 export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const [newColumnName, setNewColumnName] = useState("")
@@ -61,10 +61,15 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
     setEditingColumnIndex(null)
   }
 
+  const handleDeleteColumn = (index: number) => {
+    data.onDeleteColumn(id, index)
+  }
+
   return (
     <Card
-      className={`shadow-lg rounded-lg border min-w-[250px] min-h-[150px] ${selected ? "border-blue-200 shadow-blue-300/50" : "border-gray-200 dark:border-gray-700"
-        } dark:bg-gray-800 transition-all duration-300 ${selected ? "glow" : ""}`}
+      className={`shadow-lg rounded-lg border min-w-[250px] min-h-[150px] ${
+        selected ? "border-blue-500 shadow-blue-500/50" : "border-gray-200 dark:border-gray-700"
+      } dark:bg-gray-800 transition-all duration-300 ${selected ? "glow" : ""}`}
       style={{ width: "auto", minHeight: "150px" }}
     >
       <CardHeader className="bg-gray-100 dark:bg-gray-700 rounded-t-lg p-3 flex justify-between items-center">
@@ -104,22 +109,23 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
               {editingColumnIndex === index ? (
                 <div className="flex w-full">
                   <Input
-                    value={newColumnName}
-                    onChange={(e) => setNewColumnName(e.target.value)} // Update state normally
+                    value={`${column.name}:${column.type}`}
+                    onChange={(e) => {
+                      const [newName, newType] = e.target.value.split(":")
+                      handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
+                    }}
+                    onBlur={(e) => {
+                      const [newName, newType] = e.target.value.split(":")
+                      handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        const parts = newColumnName.split(":");
-                        if (parts.length === 2) {
-                          const [newName, newType] = parts.map((part) => part.trim());
-                          if (newName && newType) {
-                            handleColumnChange(index, newName, newType);
-                          }
-                        }
-                        setEditingColumnIndex(null);
+                        const [newName, newType] = e.currentTarget.value.split(":")
+                        handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
                       } else if (e.key === "Escape") {
-                        setEditingColumnIndex(null);
+                        setEditingColumnIndex(null)
                       }
-                      e.stopPropagation();
+                      e.stopPropagation()
                     }}
                     className="text-sm w-full mr-2"
                     placeholder="name:type"
@@ -133,17 +139,12 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                     size="sm"
                     variant="ghost"
                     className="p-0 h-6 w-6 ml-1"
-                    onClick={() => {
-                      setEditingColumnIndex(index);
-                      setNewColumnName(`${column.name}:${column.type}`); // Pre-fill input
-                    }}
+                    onClick={() => setEditingColumnIndex(index)}
                   >
                     <Edit2 size={12} />
                   </Button>
                 </>
               )}
-
-
               <span className="ml-auto mr-3 text-gray-500 dark:text-gray-400">{column.type}</span>
               {column.isPrimaryKey && <Key size={14} className="text-yellow-500 mr-1" />}
               <Button
@@ -153,6 +154,14 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                 onClick={() => togglePrimaryKey(column.name)}
               >
                 🔑
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="p-0 h-6 w-6 text-red-500"
+                onClick={() => handleDeleteColumn(index)}
+              >
+                <Trash2 size={12} />
               </Button>
               <Handle
                 type="source"

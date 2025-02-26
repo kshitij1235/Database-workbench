@@ -5,7 +5,7 @@ export function exportToSql(nodes, edges) {
   nodes.forEach((node) => {
     sql += `CREATE TABLE ${node.data.label} (\n`
     node.data.columns.forEach((column, index) => {
-      sql += `  ${column.name} ${column.type.toUpperCase()}`
+      sql += `  ${column.name} ${column.type.toUpperCase()}${column.isPrimaryKey ? " PRIMARY KEY" : ""}`
       if (index < node.data.columns.length - 1) {
         sql += ","
       }
@@ -22,14 +22,15 @@ export function exportToSql(nodes, edges) {
     if (sourceNode && targetNode) {
       // Extract actual column names from handles
       const sourceColumn = edge.sourceHandle.split("-").slice(1, -1).join("_") // Get column name from handle
-      const targetColumn = edge.targetHandle.split("-").slice(1, -1).join("_") 
+      const targetColumn = edge.targetHandle.split("-").slice(1, -1).join("_")
 
       if (sourceColumn && targetColumn) {
         sql += `ALTER TABLE ${targetNode.data.label}\n`
-        sql += `ADD CONSTRAINT fk_${targetNode.data.label}_${targetColumn} FOREIGN KEY (${targetColumn.split("_", 2)[1] || ""}) REFERENCES ${sourceNode.data.label}(${sourceColumn.split("_", 2)[1] || ""});\n\n`
+        sql += `ADD CONSTRAINT fk_${targetNode.data.label}_${targetColumn.replace(/^\d+_/, "")} FOREIGN KEY (${targetColumn.replace(/^\d+_/, "")|| ""}) REFERENCES ${sourceNode.data.label}(${sourceColumn.replace(/^\d+_/, "")});\n\n`
       }
     }
   })
 
   return sql
 }
+
