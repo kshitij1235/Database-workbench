@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
 import "../styles/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+
+
+
 export const metadata: Metadata = {
   title: 'Database_Workbench',
   description: 'Let you design database.',

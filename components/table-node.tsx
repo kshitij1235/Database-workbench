@@ -5,28 +5,33 @@ import { Handle, Position, type NodeProps } from "reactflow"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Key, Edit2, Trash2 } from "lucide-react"
 
 export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const [newColumnName, setNewColumnName] = useState("")
+  const [newColumnType, setNewColumnType] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
   const [tableName, setTableName] = useState(data.label)
   const [editingColumnIndex, setEditingColumnIndex] = useState<number | null>(null)
+  const [enumValues, setEnumValues] = useState<string[]>([])
 
   useEffect(() => {
     setTableName(data.label)
   }, [data.label])
 
   const handleAddColumn = () => {
-    const parts = newColumnName.split(":")
-    if (parts.length === 2) {
-      const [name, type] = parts.map((part) => part.trim())
-      if (name && type) {
-        data.onAddColumn(id, name, type)
-        setNewColumnName("")
-        setIsAdding(false)
+    if (newColumnName && newColumnType) {
+      let finalType = newColumnType
+      if (newColumnType === "ENUM" && enumValues.length > 0) {
+        finalType = `ENUM(${enumValues.map((v) => `'${v}'`).join(", ")})`
       }
+      data.onAddColumn(id, newColumnName, finalType)
+      setNewColumnName("")
+      setNewColumnType("")
+      setEnumValues([])
+      setIsAdding(false)
     }
   }
 
@@ -36,6 +41,8 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
     } else if (e.key === "Escape") {
       setIsAdding(false)
       setNewColumnName("")
+      setNewColumnType("")
+      setEnumValues([])
     }
   }
 
@@ -64,6 +71,37 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const handleDeleteColumn = (index: number) => {
     data.onDeleteColumn(id, index)
   }
+
+  const handleAddEnumValue = () => {
+    setEnumValues([...enumValues, ""])
+  }
+
+  const handleUpdateEnumValue = (index: number, value: string) => {
+    const newEnumValues = [...enumValues]
+    newEnumValues[index] = value
+    setEnumValues(newEnumValues)
+  }
+
+  const handleRemoveEnumValue = (index: number) => {
+    const newEnumValues = [...enumValues]
+    newEnumValues.splice(index, 1)
+    setEnumValues(newEnumValues)
+  }
+
+  const EdgeLabel = ({ label }) => (
+    <div
+      style={{
+        position: "absolute",
+        padding: "2px 4px",
+        borderRadius: "4px",
+        fontSize: "10px",
+        fontWeight: "bold",
+        pointerEvents: "all",
+      }}
+    >
+      {label}
+    </div>
+  )
 
   return (
     <Card
@@ -105,7 +143,9 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                 id={`${id}-${column.name}-target`}
                 isConnectable={isConnectable}
                 style={{ left: -18, height: 10, width: 10 }}
-              />
+              >
+                <EdgeLabel label={column.options} />
+              </Handle>
               {editingColumnIndex === index ? (
                 <div className="flex w-full">
                   <Input
@@ -168,8 +208,10 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                 position={Position.Right}
                 id={`${id}-${column.name}-source`}
                 isConnectable={isConnectable}
-                style={{ right: -18, height: 10, width: 10 }}
-              />
+                style={{ right: -18, height: 10, width: 10}}
+              >
+                <EdgeLabel label={column.options} />
+              </Handle>
             </div>
           ))}
         </div>
@@ -179,15 +221,46 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
             <Input
               value={newColumnName}
               onChange={(e) => setNewColumnName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Column name : type"
+              placeholder="Column name"
               className="text-sm dark:bg-gray-700 dark:text-white"
             />
+            <Select onValueChange={(value) => setNewColumnType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select column type" />
+              </SelectTrigger>
+              <SelectContent>
+                {data.validColumnTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {newColumnType === "ENUM" && (
+              <div className="space-y-2">
+                {enumValues.map((value, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={value}
+                      onChange={(e) => handleUpdateEnumValue(index, e.target.value)}
+                      placeholder={`Enum value ${index + 1}`}
+                      className="text-sm dark:bg-gray-700 dark:text-white"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => handleRemoveEnumValue(index)}>
+                      <Trash2 size={12} />
+                    </Button>
+                  </div>
+                ))}
+                <Button size="sm" onClick={handleAddEnumValue}>
+                  Add Enum Value
+                </Button>
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleAddColumn} disabled={newColumnName.split(":").length !== 2}>
+              <Button size="sm" onClick={handleAddColumn} disabled={!newColumnName || !newColumnType}>
                 Add
               </Button>
             </div>

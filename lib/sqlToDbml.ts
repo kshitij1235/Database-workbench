@@ -1,108 +1,132 @@
-import { importer } from '@dbml/core';
-import path from 'path';
+import { importer } from "@dbml/core";
+import path from "path";
 
-// Define types for input paths
 type InputPaths = string | string[];
 
-// Function to resolve paths, ensuring all paths are absolute paths
 function resolvePaths(paths: InputPaths): string | string[] {
-    if (!Array.isArray(paths)) {
-        return path.resolve(process.cwd(), paths);
-    }
-    return paths.map((_path) => path.resolve(process.cwd(), _path));
+  if (!Array.isArray(paths)) {
+    return path.resolve(process.cwd(), paths);
+  }
+  return paths.map((_path) => path.resolve(process.cwd(), _path));
 }
 
-// Class to handle writing to an output string
 class OutputStringPlugin {
-    private content: string;
+  private content: string;
 
-    constructor() {
-        this.content = '';
-    }
+  constructor() {
+    this.content = "";
+  }
 
-    // Method to write data into the content
-    write(data: string): void {
-        this.content += data;
-    }
+  write(data: string): void {
+    this.content += data;
+  }
 
-    // Method to get the current content
-    getContent(): string {
-        return this.content;
-    }
+  getContent(): string {
+    return this.content;
+  }
 }
 
-// Function to generate DBML text from SQL input
-async function generate(input: string, transform: (sql: string) => Promise<any>, outputPlugin: OutputStringPlugin): Promise<void> {
-    try {
-        const content = await transform(input);  // Await the promise returned by transform
-        outputPlugin.write(content);  // Write the content to the plugin
-    } catch (e: any) {
-        console.error("Error details:", e);
-        throw e;
-    }
+async function generate(
+  input: string,
+  transform: (sql: string) => Promise<any>,
+  outputPlugin: OutputStringPlugin
+): Promise<void> {
+  try {
+    const content = await transform(input);
+    outputPlugin.write(content);
+  } catch (e: any) {
+    console.error("Error details:", e);
+    throw e;
+  }
 }
 
-/**
- * Converts MySQL text to DBML text.
- * 
- * @param {string} mysqlText - The MySQL text to convert.
- * @returns {Promise<string>} The DBML output as a string. Rejects with an error message if conversion fails.
- */
-async function convertSqlToDbml(mysqlText: string): Promise<string> {
-    try {
-        const outputPlugin = new OutputStringPlugin();
+interface ForeignKeyRelationship {
+  sourceTable: string;
+  sourceColumn: string;
+  targetTable: string;
+  targetColumn: string;
+  direction: ">" | "<";
+  options?: string;
+}
 
-        // Use the generate function to process the input
-        await generate(mysqlText, (sql: string) => {
-            return new Promise((resolve, reject) => {
-                try {
-                    // Use the importer to convert SQL to DBML
-                    const result = importer.import(sql, 'mysql');
-                    resolve(result);  // Resolve with the DBML result
-                } catch (error) {
-                    reject(error);  // Reject if an error occurs
-                }
-            });
-        }, outputPlugin);
+async function convertSqlToDbml(
+  mysqlText: string
+): Promise<{ dbml: string; relationships: ForeignKeyRelationship[] }> {
+  try {
+    const outputPlugin = new OutputStringPlugin();
 
-        // Log the final content to inspect what is being returned
-        let finalContent = outputPlugin.getContent();
-        console.log("Final DBML Content:", finalContent);
+    await generate(
+      mysqlText,
+      (sql: string) => {
+        return new Promise((resolve, reject) => {
+          try {
+            const result = importer.import(sql, "mysql");
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      },
+      outputPlugin
+    );
 
-        // Regular expression to extract the content of tables (ignores everything outside)
-        const tableRegex = /Table\s+"([\w\d_]+)"\s*\{([\s\S]*?)\}/g;
+    const finalContent = outputPlugin.getContent();
+    console.log("DBML Content Before Relationship Extraction:\n", finalContent);
 
-        let match;
-        let result = '';
+    const tableRegex = /Table\s+"?([\w\d_]+)"?\s*\{([\s\S]*?)\}/g;
+    const relationshipRegex =
+      /Ref:\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?\s*([<>])\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?(\s*\[.*?\])?/g;
 
-        // Loop through all matches for tables
-        while ((match = tableRegex.exec(finalContent)) !== null) {
-            const tableName = match[1];
-            const tableContent = match[2];
+    let match;
+    let result = "";
+    const relationships: ForeignKeyRelationship[] = [];
 
-            // Process columns, filtering out anything that's not a column definition
-            const columnRegex = /"([\w\d_]+)"\s+([\w\d(),]+)\s*(?:\[.*\])?/g;
-            let columnMatch;
-            let columns: string[] = [];
+    // Extract Tables
+    while ((match = tableRegex.exec(finalContent)) !== null) {
+      const tableName = match[1];
+      const tableContent = match[2];
 
-            while ((columnMatch = columnRegex.exec(tableContent)) !== null) {
-                const columnName = columnMatch[1];
-                const columnType = columnMatch[2];
-                columns.push(`${columnName}: ${columnType}`);
-            }
+      const columnRegex = /"([\w\d_]+)"\s+([\w\d(),]+)\s*(?:\[.*?\])?/g;
+      let columnMatch;
+      const columns: string[] = [];
 
-            // Add the table and its columns to the result
-            result += `Table ${tableName} {\n  ${columns.join('\n  ')}\n}\n`;
-        }
+      while ((columnMatch = columnRegex.exec(tableContent)) !== null) {
+        const columnName = columnMatch[1];
+        const columnType = columnMatch[2];
+        const isPrimaryKey = tableContent.includes(`"${columnName}" [pk]`);
+        columns.push(`${columnName} ${columnType}${isPrimaryKey ? " [pk]" : ""}`);
+      }
 
-        // Log the final cleaned DBML content
-        console.log("Cleaned DBML Content:", result);
-
-        return result;
-    } catch (error) {
-        console.error("Conversion error:", error);
-        throw error;
+      result += `Table ${tableName} {\n  ${columns.join("\n  ")}\n}\n\n`;
     }
+
+    // Extract Relationships
+    while ((match = relationshipRegex.exec(finalContent)) !== null) {
+      const [, sourceTable, sourceColumn, direction, targetTable, targetColumn, options] = match;
+
+      const relationship: ForeignKeyRelationship = {
+        sourceTable,
+        sourceColumn,
+        targetTable,
+        targetColumn,
+        direction: direction === ">" ? ">" : "<",
+        options: options ? options.trim() : "",
+      };
+
+      relationships.push(relationship);
+
+      // Append relationships to result
+      result += `Ref: ${sourceTable}.${sourceColumn} ${relationship.direction} ${targetTable}.${targetColumn}${relationship.options ? ` ${relationship.options}` : ""}\n`;
+    }
+
+    console.log("Final Processed DBML with Relationships:\n", result);
+    console.log("Extracted Relationships:", relationships);
+
+    return { dbml: result, relationships };
+  } catch (error) {
+    console.error("Conversion error:", error);
+    throw error;
+  }
 }
 
 export default convertSqlToDbml;

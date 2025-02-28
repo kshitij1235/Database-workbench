@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Github, Twitter, Linkedin } from "lucide-react"
+import { Upload, Github, Linkedin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "next-themes"
@@ -31,10 +31,11 @@ export default function Home() {
 
       try {
         console.log("SQL File Content:", reader.result)
-        const dbml = await convertSqlToDbml(reader.result)
+        const { dbml, relationships } = await convertSqlToDbml(reader.result)
         console.log("Converted DBML:", dbml)
+        console.log("Extracted Relationships:", relationships)
 
-        localStorage.setItem("dbml", dbml)
+        localStorage.setItem("dbmlData", JSON.stringify({ dbml, relationships }))
         router.push("/workbench")
       } catch (error) {
         console.error("Conversion error:", error)

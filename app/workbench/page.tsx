@@ -19,7 +19,6 @@ import { exportToSql } from "@/lib/sqlExporter"
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 import { InfoBox } from "@/components/workbench-info-box"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 import { ExportDropdown } from "./exportOptionDropDown"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -28,13 +27,29 @@ const nodeTypes = {
   table: TableNode,
 }
 
+const validColumnTypes = [
+  "INT",
+  "BIGINT",
+  "FLOAT",
+  "DOUBLE",
+  "DECIMAL",
+  "VARCHAR",
+  "CHAR",
+  "TEXT",
+  "DATE",
+  "DATETIME",
+  "TIMESTAMP",
+  "BOOLEAN",
+  "ENUM",
+]
+
 export default function Workbench() {
   const { theme, setTheme } = useTheme()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNodes, setSelectedNodes] = useState([])
   const { toast } = useToast()
-  
+
   const onUpdateTableName = useCallback(
     (id, newName) => {
       setNodes((prevNodes) =>
@@ -51,7 +66,7 @@ export default function Workbench() {
           if (node.id === id) {
             const updatedColumns = node.data.columns.map((col) => ({
               ...col,
-              isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : false,
+              isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : col.isPrimaryKey,
             }))
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
@@ -61,7 +76,6 @@ export default function Workbench() {
     },
     [setNodes],
   )
-
 
   const onDeleteColumn = useCallback(
     (id, index) => {
@@ -82,7 +96,6 @@ export default function Workbench() {
     },
     [setNodes, toast],
   )
-
 
   const onUpdateColumn = useCallback(
     (id, index, newName, newType) => {
@@ -127,7 +140,7 @@ export default function Workbench() {
       type: "table",
       position: getNewNodePosition(),
       data: {
-        label: "New Table",
+        label: "NewTable",
         columns: [],
         onAddColumn: (id, name, type) => {
           setNodes((prevNodes) =>
@@ -148,6 +161,7 @@ export default function Workbench() {
         onTogglePrimaryKey,
         onUpdateColumn,
         onDeleteColumn,
+        validColumnTypes,
       },
     }
     setNodes((nds) => [...nds, newNode])
@@ -158,8 +172,9 @@ export default function Workbench() {
   }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, getNewNodePosition, setNodes, toast])
 
   useEffect(() => {
-    const dbml = localStorage.getItem("dbml")
-    if (dbml) {
+    const dbmlData = localStorage.getItem("dbmlData")
+    if (dbmlData) {
+      const { dbml, relationships } = JSON.parse(dbmlData)
       let parsedNodes = parseDbml(dbml)
 
       parsedNodes = parsedNodes.map((node) => ({
@@ -185,13 +200,37 @@ export default function Workbench() {
           onTogglePrimaryKey,
           onUpdateColumn,
           onDeleteColumn,
+          validColumnTypes,
         },
       }))
 
       setNodes(parsedNodes)
-      localStorage.removeItem("dbml")
+
+      // Create edges based on relationships
+      const newEdges = relationships
+        .map((rel, index) => {
+          const sourceNode = parsedNodes.find((node) => node.data.label === rel.sourceTable)
+          const targetNode = parsedNodes.find((node) => node.data.label === rel.targetTable)
+
+          if (sourceNode && targetNode) {
+            return {
+              id: `edge-${index}`,
+              source: rel.direction === ">" ? sourceNode.id : targetNode.id,
+              target: rel.direction === ">" ? targetNode.id : sourceNode.id,
+              sourceHandle: `${rel.direction === ">" ? sourceNode.id : targetNode.id}-${rel.direction === ">" ? rel.sourceColumn : rel.targetColumn}-source`,
+              targetHandle: `${rel.direction === ">" ? targetNode.id : sourceNode.id}-${rel.direction === ">" ? rel.targetColumn : rel.sourceColumn}-target`,
+              label: rel.options || "",
+            }
+          }
+          return null
+        })
+        .filter(Boolean)
+
+      setEdges(newEdges)
+
+      localStorage.removeItem("dbmlData")
     }
-  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn,setNodes])
+  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, setNodes, setEdges])
 
   const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
@@ -223,7 +262,6 @@ export default function Workbench() {
     }
   }, [handleKeyDown])
 
-
   const handleExportDbml = () => {
     const dbml = exportToDbml(nodes, edges)
     const blob = new Blob([dbml], { type: "text/plain" })
@@ -251,7 +289,7 @@ export default function Workbench() {
           Workbench
         </a>
         <div className="space-x-2 flex items-center">
-        <ExportDropdown onExportDbml={handleExportDbml} onExportSql={handleExportSql} />
+          <ExportDropdown onExportDbml={handleExportDbml} onExportSql={handleExportSql} />
 
           <Button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

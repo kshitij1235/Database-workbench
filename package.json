@@ -2,12 +2,11 @@
   "name": "Database_Workbench",
   "version": "0.1.0",
   "private": true,
- "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "deploy": "npm run build && gh-pages -d out"
-}
-,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "deploy": "npm run build && gh-pages -d out"
+  },
   "dependencies": {
     "@dbml/cli": "^3.9.6",
     "@dbml/core": "^3.9.6",
@@ -58,6 +57,7 @@
     "reactflow": "latest",
     "recharts": "2.15.0",
     "sonner": "^1.7.4",
+    "sql-ddl-sync": "^0.4.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
