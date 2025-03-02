@@ -5,6 +5,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 export const metadata: Metadata = {
   title: "Database_Workbench",
   description: "Let you design database.",
+  icons: {
+    icon: '/workbench_logo.png',
+  }
 };
 
 export default function RootLayout({
