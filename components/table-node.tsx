@@ -149,23 +149,22 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
               {editingColumnIndex === index ? (
                 <div className="flex w-full">
                   <Input
-                    value={`${column.name}:${column.type}`}
-                    onChange={(e) => {
-                      const [newName, newType] = e.target.value.split(":")
-                      handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
-                    }}
-                    onBlur={(e) => {
-                      const [newName, newType] = e.target.value.split(":")
-                      handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
-                    }}
+                    value={newColumnName}
+                    onChange={(e) => setNewColumnName(e.target.value)} // Update state normally
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        const [newName, newType] = e.currentTarget.value.split(":")
-                        handleColumnChange(index, newName.trim(), newType ? newType.trim() : column.type)
+                        const parts = newColumnName.split(":");
+                        if (parts.length === 2) {
+                          const [newName, newType] = parts.map((part) => part.trim());
+                          if (newName && newType) {
+                            handleColumnChange(index, newName, newType);
+                          }
+                        }
+                        setEditingColumnIndex(null);
                       } else if (e.key === "Escape") {
-                        setEditingColumnIndex(null)
+                        setEditingColumnIndex(null);
                       }
-                      e.stopPropagation()
+                      e.stopPropagation();
                     }}
                     className="text-sm w-full mr-2"
                     placeholder="name:type"

@@ -3,11 +3,28 @@ import "../styles/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "Database_Workbench",
-  description: "Let you design database.",
+  title: "Database Workbench - Design & Optimize Your Database",
+  description: "Database Workbench helps you design, model, and optimize databases efficiently. Create structured schemas, visualize relationships, and enhance query performance with ease.",
   icons: {
-    icon: '/workbench_logo.png',
-  }
+    icon: "/favicon.ico",
+  },
+  keywords: [
+    "Database Workbench",
+    "Database Design",
+    "DBMS",
+    "SQL Schema",
+    "Data Modeling",
+    "Query Optimization",
+    "Relational Databases",
+    "ER Diagrams",
+    "SQL Performance",
+    "DBML"
+  ],
+  openGraph: {
+    title: "Database Workbench - Design & Optimize Your Database",
+    description: "Create efficient database schemas, visualize data relationships, and optimize performance with Database Workbench.",
+    type: "website"
+  },
 };
 
 export default function RootLayout({
