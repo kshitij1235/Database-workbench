@@ -213,13 +213,27 @@ export default function Workbench() {
           const targetNode = parsedNodes.find((node) => node.data.label === rel.targetTable)
 
           if (sourceNode && targetNode) {
+            const sourceId = sourceNode.id
+            const targetId = targetNode.id
+            const sourceColumn = rel.sourceColumn
+            const targetColumn = rel.targetColumn
+
             return {
               id: `edge-${index}`,
-              source: rel.direction === ">" ? sourceNode.id : targetNode.id,
-              target: rel.direction === ">" ? targetNode.id : sourceNode.id,
-              sourceHandle: `${rel.direction === ">" ? sourceNode.id : targetNode.id}-${rel.direction === ">" ? rel.sourceColumn : rel.targetColumn}-source`,
-              targetHandle: `${rel.direction === ">" ? targetNode.id : sourceNode.id}-${rel.direction === ">" ? rel.targetColumn : rel.sourceColumn}-target`,
-              label: rel.options || "",
+              source: sourceId,
+              target: targetId,
+              sourceHandle: `${sourceId}-${sourceColumn}-source`,
+              targetHandle: `${targetId}-${targetColumn}-target`,
+              animated: true,
+              style: { strokeWidth: 2},
+              label: `${rel.sourceTable}.${sourceColumn} → ${rel.targetTable}.${targetColumn}`,
+              data: {
+                sourceTable: rel.sourceTable,
+                sourceColumn: sourceColumn,
+                targetTable: rel.targetTable,
+                targetColumn: targetColumn,
+                options: rel.options || "",
+              },
             }
           }
           return null
@@ -232,7 +246,44 @@ export default function Workbench() {
     }
   }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, setNodes, setEdges])
 
-  const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
+  const onConnect = useCallback(
+    (params: Edge | Connection) => {
+      // Extract source and target node information
+      const sourceNode = nodes.find((node) => node.id === params.source)
+      const targetNode = nodes.find((node) => node.id === params.target)
+
+      if (!sourceNode || !targetNode) return
+
+      // Extract column names from the handle IDs
+      // Handle IDs are in format: "nodeId-columnName-source/target"
+      // We need to extract the middle part (columnName)
+      const sourceHandleId = params.sourceHandle || ""
+      const targetHandleId = params.targetHandle || ""
+
+      // Extract the column name by removing the nodeId and -source/-target parts
+      const sourceColumn = sourceHandleId.replace(`${params.source}-`, "").replace("-source", "")
+
+      const targetColumn = targetHandleId.replace(`${params.target}-`, "").replace("-target", "")
+
+      // Create a custom edge with styling
+      const customEdge = {
+        ...params,
+        animated: true,
+        style: { strokeWidth: 2 },
+        label: `${sourceNode.data.label}.${sourceColumn} → ${targetNode.data.label}.${targetColumn}`,
+        data: {
+          sourceTable: sourceNode.data.label,
+          sourceColumn: sourceColumn,
+          targetTable: targetNode.data.label,
+          targetColumn: targetColumn,
+        },
+      }
+
+      setEdges((eds) => addEdge(customEdge, eds))
+    },
+    [nodes, setEdges],
+  )
+
 
   const onSelectionChange = useCallback(({ nodes, edges }) => {
     setSelectedNodes(nodes.map((node) => node.id))
