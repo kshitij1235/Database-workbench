@@ -22,6 +22,7 @@ import { InfoBox } from "@/components/workbench-info-box"
 import { ExportDropdown } from "./exportOptionDropDown"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { styleText } from "util"
 
 const nodeTypes = {
   table: TableNode,
@@ -67,6 +68,24 @@ export default function Workbench() {
             const updatedColumns = node.data.columns.map((col) => ({
               ...col,
               isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : col.isPrimaryKey,
+            }))
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
+
+  const onToggleIndex = useCallback(
+    (id, columnName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = node.data.columns.map((col) => ({
+              ...col,
+              isIndexed: col.name === columnName ? !col.isIndexed : col.isIndexed,
             }))
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
@@ -161,6 +180,7 @@ export default function Workbench() {
         onTogglePrimaryKey,
         onUpdateColumn,
         onDeleteColumn,
+        onToggleIndex, 
         validColumnTypes,
       },
     }
@@ -169,7 +189,7 @@ export default function Workbench() {
       title: "Table Created",
       description: "A new table has been added to your database schema.",
     })
-  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, getNewNodePosition, setNodes, toast])
+  }, [onUpdateTableName, onTogglePrimaryKey,onToggleIndex, onUpdateColumn, onDeleteColumn, getNewNodePosition, setNodes, toast])
 
   useEffect(() => {
     const dbmlData = localStorage.getItem("dbmlData")
@@ -200,6 +220,7 @@ export default function Workbench() {
           onTogglePrimaryKey,
           onUpdateColumn,
           onDeleteColumn,
+          onToggleIndex, 
           validColumnTypes,
         },
       }))
@@ -244,7 +265,7 @@ export default function Workbench() {
 
       localStorage.removeItem("dbmlData")
     }
-  }, [onUpdateTableName, onTogglePrimaryKey, onUpdateColumn, onDeleteColumn, setNodes, setEdges])
+  }, [onUpdateTableName, onTogglePrimaryKey,onToggleIndex ,onUpdateColumn, onDeleteColumn, setNodes, setEdges])
 
   const onConnect = useCallback(
     (params: Edge | Connection) => {
