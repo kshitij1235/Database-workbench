@@ -225,7 +225,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
     <Card
       className={`shadow-lg rounded-lg border min-w-[250px] min-h-[150px] ${
         selected ? "border-blue-500 shadow-blue-500/50" : "border-gray-200 dark:border-gray-700"
-      } dark:bg-gray-800 transition-all duration-300 ${selected ? "glow" : ""}`}
+      } dark:bg-gray-800 transition-all duration-300 rounded-t-lg ${selected ? "glow" : ""}`}
       style={{ width: "auto", minHeight: "150px" }}
     >
         <CardHeader className="bg-gray-100 dark:bg-gray-700 rounded-t-lg p-3 flex flex-row justify-between items-center space-y-0">
@@ -257,7 +257,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
           </Badge>
         </CardHeader>
 
-      <CardContent className="p-3 dark:bg-gray-800">
+      <CardContent className="p-3 dark:bg-gray-800 rounded-b-lg">
         <div className="space-y-2">
           {data.columns.map((column, index) => (
             <div key={index} className="relative flex items-center text-sm border-b dark:border-gray-700 pb-1">
