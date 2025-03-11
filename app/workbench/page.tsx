@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import ReactFlow, {
   Background,
   Controls,
@@ -9,19 +9,22 @@ import ReactFlow, {
   type Connection,
   useNodesState,
   useEdgesState,
+  ReactFlowProvider,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { TableNode } from "@/components/table-node"
+import { TableNode } from "@/components/workbench/tableNode"
 import { Button } from "@/components/ui/button"
 import { parseDbml } from "@/lib/dbmlParser"
 import { exportToDbml } from "@/lib/dbmlExporter"
 import { exportToSql } from "@/lib/sqlExporter"
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
-import { InfoBox } from "@/components/workbench-info-box"
+import { InfoBox } from "@/components/workbench/workbenchInfoBox"
 import { ExportDropdown } from "./exportOptionDropDown"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { SchemaPanel } from "@/components/workbench/schemaPannel"
+import { SchemaToggle } from "@/components/workbench/schemaToggle"
 import { styleText } from "util"
 
 const nodeTypes = {
@@ -50,6 +53,8 @@ export default function Workbench() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNodes, setSelectedNodes] = useState([])
   const { toast } = useToast()
+  const [isSchemaOpen, setIsSchemaOpen] = useState(false)
+  const reactFlowInstanceRef = useRef(null)
 
   const onUpdateTableName = useCallback(
     (id, newName) => {
@@ -354,8 +359,34 @@ export default function Workbench() {
     a.click()
   }
 
+  const toggleSchema = useCallback(() => {
+    setIsSchemaOpen((prev) => !prev)
+  }, [])
+
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      if (reactFlowInstanceRef.current) {
+        const node = nodes.find((n) => n.id === nodeId)
+        if (node) {
+          // Center view on the node
+          reactFlowInstanceRef.current.setCenter(node.position.x + 125, node.position.y + 100, { duration: 800 })
+
+          // Select the node
+          setNodes((nds) =>
+            nds.map((n) => ({
+              ...n,
+              selected: n.id === nodeId,
+            })),
+          )
+        }
+      }
+    },
+    [nodes, setNodes],
+  )
+
+  const proOptions = { hideAttribution: true };
   return (
-    <div className="h-screen flex flex-col dark:bg-gray-900">
+    <div className="h-screen flex flex-col dark:bg-gray-900 overflow-hidden">
       <div className="p-4 bg-gray-100 dark:bg-gray-800 flex justify-between items-center">
         <a className="text-2xl font-bold dark:text-white" href="/">
           Workbench
@@ -369,25 +400,34 @@ export default function Workbench() {
         </div>
       </div>
       <div className="flex-grow relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          nodesDraggable={true}
-          elementsSelectable={true}
-          onSelectionChange={onSelectionChange}
-          deleteKeyCode={null}
-          multiSelectionKeyCode={null}
-          selectionKeyCode={null}
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+        <ReactFlowProvider>
+          <ReactFlow  
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            nodesDraggable={true}
+            elementsSelectable={true}
+            onSelectionChange={onSelectionChange}
+            deleteKeyCode={null}
+            multiSelectionKeyCode={null}
+            selectionKeyCode={null}
+            proOptions = { proOptions }
+          >
+            <Background color="#f0f0f0" gap={16} />
+            <Controls />
+          </ReactFlow>
+        </ReactFlowProvider>
         {nodes.length === 0 && <InfoBox />}
       </div>
+      <SchemaToggle isSchemaOpen={isSchemaOpen} onToggle={toggleSchema} />
+      {isSchemaOpen && (
+        <div className="absolute top-0 left-0 h-full z-10">
+          <SchemaPanel onClose={toggleSchema} nodes={nodes} onNodeClick={handleNodeClick} />
+        </div>
+      )}
       <Toaster />
     </div>
   )

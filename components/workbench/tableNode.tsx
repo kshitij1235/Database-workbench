@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Key, Edit2, List } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ColumnActionsMenu } from "@/components/ColumnActionsMenu"
+import { ColumnActionsMenu } from "@/components/workbench/ColumnActionsMenu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 
@@ -411,16 +411,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                 </Button>
               </div>
             )}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="indexed"
-                checked={isIndexed}
-                onCheckedChange={(checked) => setIsIndexed(checked === true)}
-              />
-              <Label htmlFor="indexed" className="text-sm">
-                Create Index
-              </Label>
-            </div>
             <div className="flex justify-end space-x-2">
               <Button size="sm" variant="outline" onClick={() => setIsAdding(false)}>
                 Cancel

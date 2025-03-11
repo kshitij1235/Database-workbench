@@ -15,9 +15,6 @@ export default function Home() {
   const { setTheme } = useTheme()
   const [isUploading, setIsUploading] = useState(false)
 
-  useEffect(() => {
-    setTheme("light")
-  }, [setTheme])
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
