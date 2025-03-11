@@ -95,7 +95,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between p-4">
           <motion.div
             className="flex items-center gap-2"
             initial={{ opacity: 0, x: -20 }}
@@ -150,7 +150,7 @@ export default function Home() {
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }}>
-              <a href="https://forms.gle/YourGoogleFormLink" target="_blank" rel="noopener noreferrer">
+              <a href="https://forms.gle/cuL81fAQauQ9yRvp7" target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="sm">
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Feedback
@@ -171,7 +171,6 @@ export default function Home() {
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-[600px]">
               Design, visualize, and manage your database schemas with our intuitive node-based interface. Currently{" "}
-              <span className="font-bold">100% free</span> with AI-powered features coming soon.
             </p>
             <motion.div
               className="flex flex-col sm:flex-row gap-4"
@@ -198,7 +197,7 @@ export default function Home() {
                 </label>
               </motion.div>
               <motion.div variants={fadeIn} whileHover={hoverScale}>
-                <Button size="lg" variant="outline" onClick={() => router.push("/workbench")}>
+                <Button size="lg" className="flex items-center" variant="outline" onClick={() => router.push("/workbench")}>
                   <Database className="mr-2 h-5 w-5" />
                   Create New Database
                 </Button>
@@ -601,47 +600,6 @@ export default function Home() {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-primary text-primary-foreground py-16">
-        <div className="container px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Database Workflow?</h2>
-            <p className="text-xl mb-8 max-w-[800px] mx-auto opacity-90">
-              Start using DB Workbench today - it's completely free!
-            </p>
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-            >
-              <motion.div variants={fadeIn} whileHover={hoverScale}>
-                <Button size="lg" variant="secondary" onClick={() => router.push("/workbench")}>
-                  Start Building Now
-                </Button>
-              </motion.div>
-              <motion.div variants={fadeIn} whileHover={hoverScale}>
-                <a href="https://forms.gle/cuL81fAQauQ9yRvp7" target="_blank" rel="noopener noreferrer">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
-                  >
-                    Send Feedback
-                  </Button>
-                </a>
-              </motion.div>
-            </motion.div>
           </motion.div>
         </div>
       </section>
