@@ -143,7 +143,7 @@ export default function Home() {
               FAQ
             </motion.a>
           </nav>
-          <div className="flex items-center gap-4 ">
+          <div className="flex items-center gap-4 overflow-hidden ">
             <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
               <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                 {mounted && theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -188,8 +188,8 @@ export default function Home() {
                     onChange={handleFileUpload}
                     disabled={isUploading}
                   />
-                  <Button size="lg" className="flex items-center" asChild>
-                    <span>
+                  <Button size="lg" className="flex items-center w-full" asChild>
+                    <span className="flex justify-center w-full">
                       <Upload className="mr-2 h-5 w-5" />
                       Import SQL File
                     </span>
@@ -201,10 +201,13 @@ export default function Home() {
                   size="lg"
                   className="flex items-center"
                   variant="outline"
+                  asChild
                   onClick={() => router.push("/workbench")}
                 >
-                  <Database className="mr-2 h-5 w-5" />
-                  Create New Database
+                  <span className="flex justify-center ">
+                    <Database className="mr-2 h-5 w-5" />
+                    Create New Database
+                  </span>
                 </Button>
               </motion.div>
             </motion.div>
