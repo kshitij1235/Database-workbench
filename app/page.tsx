@@ -105,7 +105,7 @@ export default function Home() {
             <Database className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">DB Workbench</span>
           </motion.div>
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center justify-center gap-6">
             <motion.a
               href="#get-started"
               className="text-sm font-medium hover:text-primary"
@@ -163,7 +163,7 @@ export default function Home() {
 
       {/* Hero Section with Direct Action Pills */}
       <section className="container px-4 py-16 md:py-24">
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center justify-items-center">
           <motion.div initial="hidden" animate="visible" variants={fadeIn}>
             <Badge className="mb-4">Version 1.0</Badge>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
@@ -197,7 +197,12 @@ export default function Home() {
                 </label>
               </motion.div>
               <motion.div variants={fadeIn} whileHover={hoverScale}>
-                <Button size="lg" className="flex items-center" variant="outline" onClick={() => router.push("/workbench")}>
+                <Button
+                  size="lg"
+                  className="flex items-center"
+                  variant="outline"
+                  onClick={() => router.push("/workbench")}
+                >
                   <Database className="mr-2 h-5 w-5" />
                   Create New Database
                 </Button>
@@ -224,11 +229,7 @@ export default function Home() {
               boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
             }}
           >
-            <img
-              src="heropage.gif?height=600&width=800"
-              alt="Database Workbench Interface"
-              className="w-full h-auto"
-            />
+            <img src="heropage.gif?height=600&width=800" alt="Database Workbench Interface" className="w-full h-auto" />
           </motion.div>
         </div>
       </section>
@@ -325,7 +326,7 @@ export default function Home() {
         </motion.div>
 
         <motion.div
-          className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 place-items-center"
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
@@ -423,7 +424,7 @@ export default function Home() {
       {/* About Section */}
       <section id="about" className="bg-muted/50 py-16">
         <div className="container px-4">
-          <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center">
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center justify-items-center text-center">
             <motion.div
               className="relative rounded-lg overflow-hidden border shadow-xl"
               initial={{ opacity: 0, x: -50 }}
@@ -454,7 +455,7 @@ export default function Home() {
                 accessible.
               </p>
               <motion.div
-                className="flex flex-col sm:flex-row gap-4"
+                className="flex flex-col sm:flex-row gap-4 justify-center"
                 whileHover={{ x: 5 }}
                 transition={{ duration: 0.2 }}
               >
@@ -471,9 +472,9 @@ export default function Home() {
       </section>
 
       {/* Coming Soon / Free Now Section */}
-      <section className="container px-4 py-16">
+      <section className="container px-4 py-16 text-center">
         <motion.div
-          className="text-center mb-12"
+          className="mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -607,16 +608,16 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-muted py-12">
         <div className="container px-4">
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3 text-center place-items-center">
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 justify-center">
                 <Database className="h-6 w-6 text-primary" />
                 <span className="text-xl font-bold">DB Workbench</span>
               </div>
               <p className="text-muted-foreground mb-4">
                 Design, visualize, and manage your database schemas with ease.
               </p>
-              <div className="flex space-x-4">
+              <div className="flex space-x-4 justify-center">
                 <a href="https://github.com/kshitij1235" target="_blank" rel="noopener noreferrer">
                   <Github className="h-5 w-5 text-muted-foreground hover:text-primary" />
                 </a>
@@ -661,7 +662,10 @@ export default function Home() {
               <h3 className="font-medium mb-4">Legal</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="https://github.com/kshitij1235/Database-workbench/blob/master/LICENSE" className="text-muted-foreground hover:text-primary">
+                  <a
+                    href="https://github.com/kshitij1235/Database-workbench/blob/master/LICENSE"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     License: Creative Commons Zero v1.0 Universal
                   </a>
                 </li>
