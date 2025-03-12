@@ -143,7 +143,7 @@ export default function Home() {
               FAQ
             </motion.a>
           </nav>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ">
             <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
               <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                 {mounted && theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -162,7 +162,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section with Direct Action Pills */}
-      <section className="container px-4 py-16 md:py-24">
+      <section className="container px-4 py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center justify-items-center">
           <motion.div initial="hidden" animate="visible" variants={fadeIn}>
             <Badge className="mb-4">Version 1.0</Badge>
@@ -235,7 +235,7 @@ export default function Home() {
       </section>
 
       {/* Get Started Section */}
-      <section id="get-started" className="bg-muted/50 py-12 md:py-16">
+      <section className="container px-4 py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
         <div className="container px-4">
           <motion.div
             className="text-center mb-8"
@@ -311,7 +311,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="container px-4 py-16">
+      <section id="features" className="container px-4 py-16 flex flex-col items-center justify-center mx-auto">
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
@@ -423,7 +423,7 @@ export default function Home() {
 
       {/* About Section */}
       <section id="about" className="bg-muted/50 py-16">
-        <div className="container px-4">
+        <div className="container px-4 mx-auto">
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center justify-items-center text-center">
             <motion.div
               className="relative rounded-lg overflow-hidden border shadow-xl"
@@ -472,7 +472,7 @@ export default function Home() {
       </section>
 
       {/* Coming Soon / Free Now Section */}
-      <section className="container px-4 py-16 text-center">
+      <section className="container px-4 py-16 text-center mx-auto">
         <motion.div
           className="mb-12"
           initial={{ opacity: 0, y: 20 }}
@@ -538,7 +538,7 @@ export default function Home() {
 
       {/* FAQ Section */}
       <section id="faq" className="bg-muted/50 py-16">
-        <div className="container px-4">
+        <div className="container px-4 mx-auto">
           <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -607,7 +607,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-muted py-12">
-        <div className="container px-4">
+        <div className="container px-4 mx-auto">
           <div className="grid gap-8 md:grid-cols-3 text-center place-items-center">
             <div>
               <div className="flex items-center gap-2 mb-4 justify-center">
