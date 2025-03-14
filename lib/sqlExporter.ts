@@ -5,7 +5,8 @@ export function exportToSql(nodes, edges) {
   nodes.forEach((node) => {
     sql += `CREATE TABLE ${node.data.label} (\n`
     node.data.columns.forEach((column, index) => {
-      sql += `  ${column.name} ${column.type.toUpperCase()}${column.isPrimaryKey ? " PRIMARY KEY" : ""}`
+      sql += `  ${column.name} ${(column.type ? column.type.toUpperCase() : "UNKNOWN")}${column.isPrimaryKey ? " PRIMARY KEY" : ""}`
+
       if (index < node.data.columns.length - 1) {
         sql += ","
       }
