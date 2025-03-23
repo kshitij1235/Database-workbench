@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description: "Create efficient database schemas, visualize data relationships, and optimize performance with Database Workbench.",
     type: "website"
   },
+    generator: 'v0.dev'
 };
 
 export default function RootLayout({
@@ -42,3 +43,7 @@ export default function RootLayout({
     </html>
   );
 }
+
+
+
+import './globals.css'

@@ -215,4 +215,3 @@ export function SchemaPanel({ onClose, nodes, onNodeClick }: SchemaPanelProps) {
   )
 }
 
-    
