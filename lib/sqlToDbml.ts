@@ -75,7 +75,7 @@ async function convertSqlToDbml(
 
     const tableRegex = /Table\s+"?([\w\d_]+)"?\s*\{([\s\S]*?)\}/g;
     const relationshipRegex =
-      /Ref:\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?\s*([<>])\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?(\s*\[.*?\])?/g;
+      /Ref\s*"?([\w\d_]+)"?\s*:\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?\s*([<>])\s*"?([\w\d_]+)"?\."?([\w\d_]+)"?(\s*\[.*?\])?/g;
 
     let match;
     let result = "";
@@ -100,9 +100,14 @@ async function convertSqlToDbml(
       result += `Table ${tableName} {\n  ${columns.join("\n  ")}\n}\n\n`;
     }
 
-    // Extract Relationships
+    // Debugging the extraction of relationships more thoroughly
+    console.log("Trying to extract relationships...");
+
+    // Extract Relationships with updated regex
     while ((match = relationshipRegex.exec(finalContent)) !== null) {
-      const [, sourceTable, sourceColumn, direction, targetTable, targetColumn, options] = match;
+      console.log("Relationship match found:", match); // Debug each match
+
+      const [, fkName, sourceTable, sourceColumn, direction, targetTable, targetColumn, options] = match;
 
       const relationship: ForeignKeyRelationship = {
         sourceTable,
@@ -130,4 +135,3 @@ async function convertSqlToDbml(
 }
 
 export default convertSqlToDbml;
-

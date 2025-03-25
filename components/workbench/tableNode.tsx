@@ -46,6 +46,10 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   // Add editIsPrimaryKey state
   const [editIsPrimaryKey, setEditIsPrimaryKey] = useState(false)
 
+  // Add VARCHAR size option
+  const [varcharSize, setVarcharSize] = useState("255")
+  const [editVarcharSize, setEditVarcharSize] = useState("255")
+
   useEffect(() => {
     setTableName(data.label)
   }, [data.label])
@@ -61,6 +65,8 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
       let finalType = newColumnType
       if (newColumnType === "ENUM" && enumValues.length > 0) {
         finalType = `ENUM(${enumValues.map((v) => `'${v}'`).join(", ")})`
+      } else if (newColumnType === "VARCHAR") {
+        finalType = `VARCHAR(${varcharSize})`
       }
 
       // If this column is set as primary key, we need to unset any existing primary keys
@@ -96,6 +102,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
       setIsAutoIncrement(false)
       setDefaultValue("")
       setCheckConstraint("")
+      setVarcharSize("255")
       // Reset isPrimaryKey in handleAddColumn and handleAddKeyDown
       setIsPrimaryKey(false)
       setIsAdding(false)
@@ -186,7 +193,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const startEditingColumn = (index) => {
     const column = data.columns[index]
     setEditColumnName(column.name)
-    setEditColumnType(column.type)
+    setEditColumnType(column.type.split("(")[0]) // Extract base type without size
 
     // Set additional properties if they exist
     setEditIsNotNull(column.isNotNull || false)
@@ -196,6 +203,16 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
     setEditCheckConstraint(column.checkConstraint || "")
     // In startEditingColumn, set editIsPrimaryKey
     setEditIsPrimaryKey(column.isPrimaryKey || false)
+
+    // Handle VARCHAR size extraction
+    if (column.type.startsWith("VARCHAR")) {
+      const sizeMatch = column.type.match(/VARCHAR$$(\d+)$$/)
+      if (sizeMatch && sizeMatch[1]) {
+        setEditVarcharSize(sizeMatch[1])
+      } else {
+        setEditVarcharSize("255")
+      }
+    }
 
     // Handle ENUM type separately to populate enum values
     if (column.type.startsWith("ENUM(")) {
@@ -239,6 +256,8 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
 
     if (editColumnType === "ENUM" && editEnumValues.length > 0) {
       finalType = `ENUM(${editEnumValues.map((v) => `'${v}'`).join(", ")})`
+    } else if (editColumnType === "VARCHAR") {
+      finalType = `VARCHAR(${editVarcharSize})`
     }
 
     // If this column is being set as primary key and it wasn't before,
@@ -383,9 +402,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                     border: "2px solid #fff",
                     zIndex: 5,
                   }}
-                >
-                
-                </Handle>
+                ></Handle>
                 {editingColumnIndex === index ? (
                   <div className="flex flex-col w-full space-y-2 py-2">
                     <div className="flex w-full space-x-2">
@@ -430,6 +447,23 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                         <Button size="sm" onClick={handleAddEditEnumValue}>
                           Add Enum Value
                         </Button>
+                      </div>
+                    )}
+
+                    {editColumnType === "VARCHAR" && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Label htmlFor="edit-varchar-size" className="text-xs">
+                          Size:
+                        </Label>
+                        <Input
+                          id="edit-varchar-size"
+                          type="number"
+                          min="1"
+                          max="65535"
+                          value={editVarcharSize}
+                          onChange={(e) => setEditVarcharSize(e.target.value)}
+                          className="w-24 h-7 text-xs"
+                        />
                       </div>
                     )}
 
@@ -594,7 +628,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                         isAutoIncrement={column.isAutoIncrement}
                         onTogglePrimaryKey={() => togglePrimaryKey(column.name)}
                         onToggleIndex={() => toggleIndex(column.name)}
-                        onDelete={() => handleDeleteColumn(index)}
                         onToggleNotNull={() => data.onToggleNotNull?.(id, column.name)}
                         onToggleUnique={() => data.onToggleUnique?.(id, column.name)}
                         onToggleAutoIncrement={() => data.onToggleAutoIncrement?.(id, column.name)}
@@ -615,8 +648,7 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                     border: "2px solid #fff",
                     zIndex: 5,
                   }}
-                >
-                </Handle>
+                ></Handle>
               </div>
             ))}
           </div>
@@ -660,6 +692,23 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                   <Button size="sm" onClick={handleAddEnumValue}>
                     Add Enum Value
                   </Button>
+                </div>
+              )}
+
+              {newColumnType === "VARCHAR" && (
+                <div className="flex items-center space-x-2 mt-2">
+                  <Label htmlFor="varchar-size" className="text-xs">
+                    Size:
+                  </Label>
+                  <Input
+                    id="varchar-size"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={varcharSize}
+                    onChange={(e) => setVarcharSize(e.target.value)}
+                    className="w-24 h-7 text-xs"
+                  />
                 </div>
               )}
 

@@ -264,6 +264,61 @@ export default function Workbench() {
   const reactFlowWrapper = useRef(null)
   const [reactFlowInstance, setReactFlowInstance] = useState(null)
 
+  // Move these functions inside the component so they have access to setNodes
+  const onToggleNotNull = useCallback(
+    (id, columnName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = node.data.columns.map((col) => ({
+              ...col,
+              isNotNull: col.name === columnName ? !col.isNotNull : col.isNotNull,
+            }))
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
+
+  const onToggleUnique = useCallback(
+    (id, columnName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = node.data.columns.map((col) => ({
+              ...col,
+              isUnique: col.name === columnName ? !col.isUnique : col.isUnique,
+            }))
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
+
+  const onToggleAutoIncrement = useCallback(
+    (id, columnName) => {
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === id) {
+            const updatedColumns = node.data.columns.map((col) => ({
+              ...col,
+              isAutoIncrement: col.name === columnName ? !col.isAutoIncrement : col.isAutoIncrement,
+            }))
+            return { ...node, data: { ...node.data, columns: updatedColumns } }
+          }
+          return node
+        }),
+      )
+    },
+    [setNodes],
+  )
+
   const onUpdateTableName = useCallback(
     (id, newName) => {
       setNodes((prevNodes) =>
@@ -329,13 +384,35 @@ export default function Workbench() {
     [setNodes, toast],
   )
 
+  // Update the onUpdateColumn function to handle all column properties
   const onUpdateColumn = useCallback(
-    (id, index, newName, newType) => {
+    (
+      id,
+      index,
+      newName,
+      newType,
+      isPrimaryKey = false,
+      isNotNull = false,
+      isUnique = false,
+      isAutoIncrement = false,
+      defaultValue = null,
+      checkConstraint = null,
+    ) => {
       setNodes((prevNodes) =>
         prevNodes.map((node) => {
           if (node.id === id) {
             const updatedColumns = [...node.data.columns]
-            updatedColumns[index] = { ...updatedColumns[index], name: newName, type: newType }
+            updatedColumns[index] = {
+              ...updatedColumns[index],
+              name: newName,
+              type: newType,
+              isPrimaryKey,
+              isNotNull,
+              isUnique,
+              isAutoIncrement,
+              defaultValue,
+              checkConstraint,
+            }
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
           return node
@@ -366,6 +443,7 @@ export default function Workbench() {
     return newPos
   }, [nodes])
 
+  // Update the addTable function to include these functions
   const addTable = useCallback(() => {
     const newNode = {
       id: `table-${Date.now()}`,
@@ -374,7 +452,18 @@ export default function Workbench() {
       data: {
         label: "NewTable",
         columns: [],
-        onAddColumn: (id, name, type) => {
+        onAddColumn: (
+          id,
+          name,
+          type,
+          isIndexed = false,
+          isPrimaryKey = false,
+          isNotNull = false,
+          isUnique = false,
+          isAutoIncrement = false,
+          defaultValue = null,
+          checkConstraint = null,
+        ) => {
           setNodes((prevNodes) =>
             prevNodes.map((node) =>
               node.id === id
@@ -382,7 +471,20 @@ export default function Workbench() {
                     ...node,
                     data: {
                       ...node.data,
-                      columns: [...node.data.columns, { name, type, isPrimaryKey: false }],
+                      columns: [
+                        ...node.data.columns,
+                        {
+                          name,
+                          type,
+                          isPrimaryKey,
+                          isIndexed,
+                          isNotNull,
+                          isUnique,
+                          isAutoIncrement,
+                          defaultValue,
+                          checkConstraint,
+                        },
+                      ],
                     },
                   }
                 : node,
@@ -394,6 +496,9 @@ export default function Workbench() {
         onUpdateColumn,
         onDeleteColumn,
         onToggleIndex,
+        onToggleNotNull,
+        onToggleUnique,
+        onToggleAutoIncrement,
         validColumnTypes,
       },
     }
@@ -408,6 +513,9 @@ export default function Workbench() {
     onToggleIndex,
     onUpdateColumn,
     onDeleteColumn,
+    onToggleNotNull,
+    onToggleUnique,
+    onToggleAutoIncrement,
     getNewNodePosition,
     setNodes,
     toast,
@@ -423,7 +531,18 @@ export default function Workbench() {
         ...node,
         data: {
           ...node.data,
-          onAddColumn: (id, name, type) => {
+          onAddColumn: (
+            id,
+            name,
+            type,
+            isIndexed = false,
+            isPrimaryKey = false,
+            isNotNull = false,
+            isUnique = false,
+            isAutoIncrement = false,
+            defaultValue = null,
+            checkConstraint = null,
+          ) => {
             setNodes((prevNodes) =>
               prevNodes.map((node) =>
                 node.id === id
@@ -431,7 +550,20 @@ export default function Workbench() {
                       ...node,
                       data: {
                         ...node.data,
-                        columns: [...node.data.columns, { name, type, isPrimaryKey: false }],
+                        columns: [
+                          ...node.data.columns,
+                          {
+                            name,
+                            type,
+                            isPrimaryKey,
+                            isIndexed,
+                            isNotNull,
+                            isUnique,
+                            isAutoIncrement,
+                            defaultValue,
+                            checkConstraint,
+                          },
+                        ],
                       },
                     }
                   : node,
@@ -443,6 +575,9 @@ export default function Workbench() {
           onUpdateColumn,
           onDeleteColumn,
           onToggleIndex,
+          onToggleNotNull,
+          onToggleUnique,
+          onToggleAutoIncrement,
           validColumnTypes,
         },
       }))
@@ -508,6 +643,9 @@ export default function Workbench() {
     onToggleIndex,
     onUpdateColumn,
     onDeleteColumn,
+    onToggleNotNull,
+    onToggleUnique,
+    onToggleAutoIncrement,
     setNodes,
     setEdges,
     reactFlowInstance,
