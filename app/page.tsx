@@ -462,7 +462,7 @@ export default function Home() {
                 whileHover={{ x: 5 }}
                 transition={{ duration: 0.2 }}
               >
-                <a href="https://github.com/kshitij1235" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/kshitij1235/Database-workbench" target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" className="flex items-center">
                     <Github className="mr-2 h-4 w-4" />
                     View on GitHub
@@ -599,8 +599,7 @@ export default function Home() {
               <AccordionItem value="item-5">
                 <AccordionTrigger>When will the AI features be available?</AccordionTrigger>
                 <AccordionContent>
-                  We're actively working on our AI-powered features and expect to release them in the coming months.
-                  Sign up for our newsletter to be the first to know when they're available.
+                  We're actively working on our AI-powered features and expect to release them soon.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
