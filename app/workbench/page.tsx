@@ -770,29 +770,57 @@ export default function Workbench() {
     setSelectedNodes(nodes.map((node) => node.id))
   }, [])
 
-  const handleKeyDown = useCallback(
-    (event) => {
-      if ((event.ctrlKey && event.key === "e") || (event.ctrlKey && event.key === "E")) {
-        event.preventDefault()
-        addTable()
-      } else if (event.key === "Delete") {
-        if (selectedNodes.length > 0) {
-          setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)))
-          setSelectedNodes([])
-        } else {
-          setEdges((eds) => eds.filter((edge) => !edge.selected))
-        }
+  // Keyboard Event Handler (Ctrl + E for addTable)
+  const handleKeyDown = useCallback((event) => {
+    if ((event.ctrlKey && event.key === "e") || (event.ctrlKey && event.key === "E")) {
+      event.preventDefault();
+      addTable(); // Replace with your logic to add a table
+    } else if (event.key === "Delete") {
+      if (selectedNodes.length > 0) {
+        setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
+        setSelectedNodes([]);
+      } else {
+        setEdges((eds) => eds.filter((edge) => !edge.selected));
       }
-    },
-    [addTable, selectedNodes, setNodes, setEdges],
-  )
+    }
+  }, [addTable, selectedNodes, setNodes, setEdges]);
 
   useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [handleKeyDown])
+  }, [handleKeyDown]);
+
+  // Touch Event Handler (Long press to trigger addTable)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      let touchStartTime = 0;
+      let touchTimeout = null;
+
+      const handleTouchStart = () => {
+        touchStartTime = Date.now();
+        touchTimeout = setTimeout(() => {
+          addTable(); // Replace with your long press action
+        }, 500); // Adjust this value for longer or shorter press duration
+      };
+
+      const handleTouchEnd = () => {
+        const touchDuration = Date.now() - touchStartTime;
+        if (touchDuration < 500 && touchTimeout) {
+          clearTimeout(touchTimeout);
+        }
+      };
+
+      document.addEventListener("touchstart", handleTouchStart, { passive: true });
+      document.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+      return () => {
+        document.removeEventListener("touchstart", handleTouchStart);
+        document.removeEventListener("touchend", handleTouchEnd);
+      };
+    }
+  }, [addTable]);
 
   const handleExport = () => {
     const dbml = exportToDbml(nodes, edges)
