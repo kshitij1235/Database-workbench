@@ -90,11 +90,10 @@ export default function Home() {
     scale: 1.03,
     transition: { duration: 0.2 },
   }
-
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Navigation */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur justify-center">
+      <header className="fixed top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between p-4 m-auto">
           <motion.div
             className="flex items-center gap-2"
@@ -162,7 +161,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section with Direct Action Pills */}
-      <section className="container px-4 py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
+      <section className="container px-4   py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center justify-items-center">
           <motion.div initial="hidden" animate="visible" variants={fadeIn}>
             <Badge className="mb-4">Version 1.0</Badge>
@@ -238,7 +237,7 @@ export default function Home() {
       </section>
 
       {/* Get Started Section */}
-      <section className="container px-4 py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
+      <section id="get-started" className="container px-4 py-16 md:py-24 flex flex-col items-center justify-center mx-auto">
         <div className="container px-4">
           <motion.div
             className="text-center mb-8"
@@ -688,4 +687,3 @@ export default function Home() {
     </div>
   )
 }
-

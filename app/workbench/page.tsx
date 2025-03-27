@@ -19,7 +19,7 @@ import { parseDbml } from "@/lib/dbmlParser"
 import { exportToDbml } from "@/lib/dbmlExporter"
 import { exportToSql } from "@/lib/sqlExporter"
 import { useTheme } from "next-themes"
-import { Layout, ZoomIn } from "lucide-react"
+import { Layout, ZoomIn, Trash2 } from "lucide-react"
 import { InfoBox } from "@/components/workbench/workbenchInfoBox"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -27,6 +27,17 @@ import { SchemaPanel } from "@/components/workbench/schemaPannel"
 import { SchemaToggle } from "@/components/workbench/schemaToggle"
 import { WorkbenchHeader } from "./workbenchHeader"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ExportDialog } from "@/components/workbench/ExportDialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const nodeTypes = {
   table: TableNode,
@@ -263,6 +274,24 @@ export default function Workbench() {
   const reactFlowInstanceRef = useRef(null)
   const reactFlowWrapper = useRef(null)
   const [reactFlowInstance, setReactFlowInstance] = useState(null)
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+  const [exportSqlContent, setExportSqlContent] = useState("")
+  const [exportDbmlContent, setExportDbmlContent] = useState("")
+  const [deleteNodeId, setDeleteNodeId] = useState(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [longPressTimer, setLongPressTimer] = useState(null)
+  const [longPressPosition, setLongPressPosition] = useState({ x: 0, y: 0 })
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   // Move these functions inside the component so they have access to setNodes
   const onToggleNotNull = useCallback(
@@ -270,10 +299,16 @@ export default function Workbench() {
       setNodes((prevNodes) =>
         prevNodes.map((node) => {
           if (node.id === id) {
-            const updatedColumns = node.data.columns.map((col) => ({
-              ...col,
-              isNotNull: col.name === columnName ? !col.isNotNull : col.isNotNull,
-            }))
+            const updatedColumns = node.data.columns.map((col) => {
+              // Don't automatically set NOT NULL for primary keys
+              if (col.name === columnName) {
+                return {
+                  ...col,
+                  isNotNull: !col.isNotNull,
+                }
+              }
+              return col
+            })
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
           return node
@@ -288,10 +323,16 @@ export default function Workbench() {
       setNodes((prevNodes) =>
         prevNodes.map((node) => {
           if (node.id === id) {
-            const updatedColumns = node.data.columns.map((col) => ({
-              ...col,
-              isUnique: col.name === columnName ? !col.isUnique : col.isUnique,
-            }))
+            const updatedColumns = node.data.columns.map((col) => {
+              // Don't automatically set UNIQUE for primary keys
+              if (col.name === columnName) {
+                return {
+                  ...col,
+                  isUnique: !col.isUnique,
+                }
+              }
+              return col
+            })
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
           return node
@@ -333,10 +374,16 @@ export default function Workbench() {
       setNodes((prevNodes) =>
         prevNodes.map((node) => {
           if (node.id === id) {
-            const updatedColumns = node.data.columns.map((col) => ({
-              ...col,
-              isPrimaryKey: col.name === columnName ? !col.isPrimaryKey : col.isPrimaryKey,
-            }))
+            const updatedColumns = node.data.columns.map((col) => {
+              if (col.name === columnName) {
+                // Toggle primary key without affecting NOT NULL and UNIQUE
+                return {
+                  ...col,
+                  isPrimaryKey: !col.isPrimaryKey,
+                }
+              }
+              return col
+            })
             return { ...node, data: { ...node.data, columns: updatedColumns } }
           }
           return node
@@ -384,7 +431,75 @@ export default function Workbench() {
     [setNodes, toast],
   )
 
-  // Update the onUpdateColumn function to handle all column properties
+  // Check if column name already exists in the table
+  const isColumnNameDuplicate = useCallback(
+    (tableId, columnName, excludeIndex = -1) => {
+      const table = nodes.find((node) => node.id === tableId)
+      if (!table) return false
+
+      return table.data.columns.some(
+        (col, index) => index !== excludeIndex && col.name.toLowerCase() === columnName.toLowerCase(),
+      )
+    },
+    [nodes],
+  )
+
+  // Update the onAddColumn function to check for duplicate column names
+  const onAddColumn = useCallback(
+    (
+      id,
+      name,
+      type,
+      isIndexed = false,
+      isPrimaryKey = false,
+      isNotNull = false,
+      isUnique = false,
+      isAutoIncrement = false,
+      defaultValue = null,
+      checkConstraint = null,
+    ) => {
+      // Check for duplicate column name
+      if (isColumnNameDuplicate(id, name)) {
+        toast({
+          title: "Duplicate Column Name",
+          description: `A column named "${name}" already exists in this table.`,
+          variant: "destructive",
+        })
+        return false
+      }
+
+      setNodes((prevNodes) =>
+        prevNodes.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  columns: [
+                    ...node.data.columns,
+                    {
+                      name,
+                      type,
+                      isPrimaryKey,
+                      isIndexed,
+                      isNotNull,
+                      isUnique,
+                      isAutoIncrement,
+                      defaultValue,
+                      checkConstraint,
+                    },
+                  ],
+                },
+              }
+            : node,
+        ),
+      )
+      return true
+    },
+    [setNodes, isColumnNameDuplicate, toast],
+  )
+
+  // Update the onUpdateColumn function to handle all column properties and check for duplicates
   const onUpdateColumn = useCallback(
     (
       id,
@@ -398,6 +513,16 @@ export default function Workbench() {
       defaultValue = null,
       checkConstraint = null,
     ) => {
+      // Check for duplicate column name
+      if (isColumnNameDuplicate(id, newName, index)) {
+        toast({
+          title: "Duplicate Column Name",
+          description: `A column named "${newName}" already exists in this table.`,
+          variant: "destructive",
+        })
+        return false
+      }
+
       setNodes((prevNodes) =>
         prevNodes.map((node) => {
           if (node.id === id) {
@@ -418,108 +543,90 @@ export default function Workbench() {
           return node
         }),
       )
+      return true
     },
-    [setNodes],
+    [setNodes, isColumnNameDuplicate, toast],
   )
 
-  const getNewNodePosition = useCallback(() => {
-    const padding = 20
-    const nodeWidth = 250
-    const nodeHeight = 300
-    const existingPositions = nodes.map((node) => node.position)
-    const newPos = { x: padding, y: padding }
-
-    while (
-      existingPositions.some((pos) => Math.abs(pos.x - newPos.x) < nodeWidth && Math.abs(pos.y - newPos.y) < nodeHeight)
-    ) {
-      if (newPos.x + nodeWidth + padding < window.innerWidth) {
-        newPos.x += nodeWidth + padding
-      } else {
-        newPos.x = padding
-        newPos.y += nodeHeight + padding
+  const getNewNodePosition = useCallback(
+    (x = null, y = null) => {
+      if (x !== null && y !== null) {
+        return { x, y }
       }
-    }
 
-    return newPos
-  }, [nodes])
+      const padding = 20
+      const nodeWidth = 250
+      const nodeHeight = 300
+      const existingPositions = nodes.map((node) => node.position)
+      const newPos = { x: padding, y: padding }
+
+      while (
+        existingPositions.some(
+          (pos) => Math.abs(pos.x - newPos.x) < nodeWidth && Math.abs(pos.y - newPos.y) < nodeHeight,
+        )
+      ) {
+        if (newPos.x + nodeWidth + padding < window.innerWidth) {
+          newPos.x += nodeWidth + padding
+        } else {
+          newPos.x = padding
+          newPos.y += nodeHeight + padding
+        }
+      }
+
+      return newPos
+    },
+    [nodes],
+  )
 
   // Update the addTable function to include these functions
-  const addTable = useCallback(() => {
-    const newNode = {
-      id: `table-${Date.now()}`,
-      type: "table",
-      position: getNewNodePosition(),
-      data: {
-        label: "NewTable",
-        columns: [],
-        onAddColumn: (
-          id,
-          name,
-          type,
-          isIndexed = false,
-          isPrimaryKey = false,
-          isNotNull = false,
-          isUnique = false,
-          isAutoIncrement = false,
-          defaultValue = null,
-          checkConstraint = null,
-        ) => {
-          setNodes((prevNodes) =>
-            prevNodes.map((node) =>
-              node.id === id
-                ? {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      columns: [
-                        ...node.data.columns,
-                        {
-                          name,
-                          type,
-                          isPrimaryKey,
-                          isIndexed,
-                          isNotNull,
-                          isUnique,
-                          isAutoIncrement,
-                          defaultValue,
-                          checkConstraint,
-                        },
-                      ],
-                    },
-                  }
-                : node,
-            ),
-          )
+  const addTable = useCallback(
+    (x = null, y = null) => {
+      const newNode = {
+        id: `table-${Date.now()}`,
+        type: "table",
+        position: getNewNodePosition(x, y),
+        data: {
+          label: "NewTable",
+          columns: [],
+          onAddColumn,
+          onUpdateTableName,
+          onTogglePrimaryKey,
+          onUpdateColumn,
+          onDeleteColumn,
+          onToggleIndex,
+          onToggleNotNull,
+          onToggleUnique,
+          onToggleAutoIncrement,
+          validColumnTypes,
+          isColumnNameDuplicate,
+          onLongPress: (nodeId) => {
+            setDeleteNodeId(nodeId)
+            setIsDeleteDialogOpen(true)
+          },
         },
-        onUpdateTableName,
-        onTogglePrimaryKey,
-        onUpdateColumn,
-        onDeleteColumn,
-        onToggleIndex,
-        onToggleNotNull,
-        onToggleUnique,
-        onToggleAutoIncrement,
-        validColumnTypes,
-      },
-    }
-    setNodes((nds) => [...nds, newNode])
-    toast({
-      title: "Table Created",
-      description: "A new table has been added to your database schema.",
-    })
-  }, [
-    onUpdateTableName,
-    onTogglePrimaryKey,
-    onToggleIndex,
-    onUpdateColumn,
-    onDeleteColumn,
-    onToggleNotNull,
-    onToggleUnique,
-    onToggleAutoIncrement,
-    getNewNodePosition,
-    setNodes,
-    toast,
-  ])
+      }
+      setNodes((nds) => [...nds, newNode])
+      toast({
+        title: "Table Created",
+        description: "A new table has been added to your database schema.",
+      })
+    },
+    [
+      onAddColumn,
+      onUpdateTableName,
+      onTogglePrimaryKey,
+      onToggleIndex,
+      onUpdateColumn,
+      onDeleteColumn,
+      onToggleNotNull,
+      onToggleUnique,
+      onToggleAutoIncrement,
+      getNewNodePosition,
+      setNodes,
+      toast,
+      isColumnNameDuplicate,
+    ],
+  )
 
   useEffect(() => {
     const dbmlData = localStorage.getItem("dbmlData")
@@ -531,45 +638,7 @@ export default function Workbench() {
         ...node,
         data: {
           ...node.data,
-          onAddColumn: (
-            id,
-            name,
-            type,
-            isIndexed = false,
-            isPrimaryKey = false,
-            isNotNull = false,
-            isUnique = false,
-            isAutoIncrement = false,
-            defaultValue = null,
-            checkConstraint = null,
-          ) => {
-            setNodes((prevNodes) =>
-              prevNodes.map((node) =>
-                node.id === id
-                  ? {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        columns: [
-                          ...node.data.columns,
-                          {
-                            name,
-                            type,
-                            isPrimaryKey,
-                            isIndexed,
-                            isNotNull,
-                            isUnique,
-                            isAutoIncrement,
-                            defaultValue,
-                            checkConstraint,
-                          },
-                        ],
-                      },
-                    }
-                  : node,
-              ),
-            )
-          },
+          onAddColumn,
           onUpdateTableName,
           onTogglePrimaryKey,
           onUpdateColumn,
@@ -579,6 +648,11 @@ export default function Workbench() {
           onToggleUnique,
           onToggleAutoIncrement,
           validColumnTypes,
+          isColumnNameDuplicate,
+          onLongPress: (nodeId) => {
+            setDeleteNodeId(nodeId)
+            setIsDeleteDialogOpen(true)
+          },
         },
       }))
 
@@ -638,6 +712,7 @@ export default function Workbench() {
       }, 100)
     }
   }, [
+    onAddColumn,
     onUpdateTableName,
     onTogglePrimaryKey,
     onToggleIndex,
@@ -649,6 +724,7 @@ export default function Workbench() {
     setNodes,
     setEdges,
     reactFlowInstance,
+    isColumnNameDuplicate,
   ])
 
   const onConnect = useCallback(
@@ -718,24 +794,28 @@ export default function Workbench() {
     }
   }, [handleKeyDown])
 
-  const handleExportDbml = () => {
+  const handleExport = () => {
     const dbml = exportToDbml(nodes, edges)
-    const blob = new Blob([dbml], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "database.dbml"
-    a.click()
+    const sql = exportToSql(nodes, edges)
+    setExportDbmlContent(dbml)
+    setExportSqlContent(sql)
+    setIsExportDialogOpen(true)
   }
 
-  const handleExportSql = () => {
-    const sql = exportToSql(nodes, edges)
-    const blob = new Blob([sql], { type: "text/plain" })
+  const handleDownloadExport = (type: "sql" | "dbml") => {
+    const content = type === "sql" ? exportSqlContent : exportDbmlContent
+    const fileName = type === "sql" ? "database.sql" : "database.dbml"
+    const blob = new Blob([content], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "database.sql"
+    a.download = fileName
     a.click()
+
+    toast({
+      title: `${type.toUpperCase()} Exported`,
+      description: `Your database schema has been exported as ${fileName}.`,
+    })
   }
 
   const toggleSchema = useCallback(() => {
@@ -803,12 +883,50 @@ export default function Workbench() {
     }
   }
 
+  // Handle long press for mobile
+  const handlePaneMouseDown = (event) => {
+    if (!isMobile) return
+
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    })
+
+    setLongPressPosition(position)
+
+    const timer = setTimeout(() => {
+      addTable(position.x, position.y)
+    }, 800) // 800ms long press
+
+    setLongPressTimer(timer)
+  }
+
+  const handlePaneMouseUp = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      setLongPressTimer(null)
+    }
+  }
+
+  const handleDeleteNode = () => {
+    if (deleteNodeId) {
+      setNodes((nds) => nds.filter((node) => node.id !== deleteNodeId))
+      setIsDeleteDialogOpen(false)
+      setDeleteNodeId(null)
+
+      toast({
+        title: "Table Deleted",
+        description: "The table has been removed from your database schema.",
+      })
+    }
+  }
+
   const proOptions = { hideAttribution: true }
 
   return (
     <TooltipProvider>
       <div className="h-screen flex flex-col dark:bg-gray-900 overflow-hidden">
-        <WorkbenchHeader onExportDbml={handleExportDbml} onExportSql={handleExportSql} />
+        <WorkbenchHeader onExport={handleExport} />
         <div className="flex-grow relative" ref={reactFlowWrapper}>
           <ReactFlowProvider>
             <ReactFlow
@@ -826,6 +944,10 @@ export default function Workbench() {
               selectionKeyCode={null}
               proOptions={proOptions}
               onInit={setReactFlowInstance}
+              onMouseDown={handlePaneMouseDown}
+              onMouseUp={handlePaneMouseUp}
+              onTouchStart={handlePaneMouseDown}
+              onTouchEnd={handlePaneMouseUp}
             >
               <Background color="#f0f0f0" gap={16} />
               <Controls />
@@ -894,6 +1016,30 @@ export default function Workbench() {
             <SchemaPanel onClose={toggleSchema} nodes={nodes} onNodeClick={handleNodeClick} />
           </div>
         )}
+        <ExportDialog
+          isOpen={isExportDialogOpen}
+          onClose={() => setIsExportDialogOpen(false)}
+          sqlContent={exportSqlContent}
+          dbmlContent={exportDbmlContent}
+          onExport={handleDownloadExport}
+        />
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Table</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this table? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteNode} className="bg-red-500 hover:bg-red-600">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Toaster />
       </div>
     </TooltipProvider>

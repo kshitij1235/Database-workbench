@@ -13,9 +13,11 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "next-themes"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useToast } from "@/components/ui/use-toast"
 
 export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
   const { theme } = useTheme()
+  const { toast } = useToast()
   const [newColumnName, setNewColumnName] = useState("")
   const [newColumnType, setNewColumnType] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -79,33 +81,35 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
       }
 
       // Pass individual parameters instead of an object
-      data.onAddColumn(
+      const success = data.onAddColumn(
         id,
         newColumnName,
         finalType,
         isIndexed,
-        isPrimaryKey, // Add this parameter
-        isNotNull,
-        isUnique,
+        isPrimaryKey,
+        isNotNull, // Keep this line
+        isUnique,  // Keep this line
         isAutoIncrement,
         defaultValue || null,
         checkConstraint || null,
-      )
+    )
 
-      // Reset all fields
-      setNewColumnName("")
-      setNewColumnType("")
-      setEnumValues([])
-      setIsIndexed(false)
-      setIsNotNull(false)
-      setIsUnique(false)
-      setIsAutoIncrement(false)
-      setDefaultValue("")
-      setCheckConstraint("")
-      setVarcharSize("255")
-      // Reset isPrimaryKey in handleAddColumn and handleAddKeyDown
-      setIsPrimaryKey(false)
-      setIsAdding(false)
+      if (success) {
+        // Reset all fields
+        setNewColumnName("")
+        setNewColumnType("")
+        setEnumValues([])
+        setIsIndexed(false)
+        setIsNotNull(false)
+        setIsUnique(false)
+        setIsAutoIncrement(false)
+        setDefaultValue("")
+        setCheckConstraint("")
+        setVarcharSize("255")
+        // Reset isPrimaryKey in handleAddColumn and handleAddKeyDown
+        setIsPrimaryKey(false)
+        setIsAdding(false)
+      }
     }
   }
 
@@ -274,20 +278,22 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
     }
 
     // Use separate parameters instead of an object
-    data.onUpdateColumn(
-      id,
-      index,
-      editColumnName,
-      finalType,
-      editIsPrimaryKey, // Add this parameter
-      editIsNotNull,
-      editIsUnique,
-      editIsAutoIncrement,
-      editDefaultValue || null,
-      editCheckConstraint || null,
+    const success = data.onUpdateColumn(
+        id,
+        index,
+        editColumnName,
+        finalType,
+        editIsPrimaryKey,
+        editIsNotNull, // Keep this line
+        editIsUnique,  // Keep this line
+        editIsAutoIncrement,
+        editDefaultValue || null,
+        editCheckConstraint || null,
     )
 
-    cancelEditColumn()
+    if (success) {
+      cancelEditColumn()
+    }
   }
 
   const handleDeleteColumn = (index: number) => {
@@ -475,11 +481,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                           checked={editIsPrimaryKey}
                           onCheckedChange={(checked) => {
                             setEditIsPrimaryKey(checked)
-                            // If primary key is checked, automatically set NOT NULL and disable it
-                            if (checked) {
-                              setEditIsNotNull(true)
-                              setEditIsUnique(true)
-                            }
                           }}
                           // Disable if another column is already PK and this one isn't
                           disabled={hasPrimaryKey() && !column.isPrimaryKey}
@@ -509,7 +510,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                           id="edit-not-null"
                           checked={editIsNotNull}
                           onCheckedChange={setEditIsNotNull}
-                          disabled={editIsPrimaryKey} // Primary keys are implicitly NOT NULL
                         />
                         <Label htmlFor="edit-not-null" className="text-xs flex items-center">
                           <AlertCircle className="h-3 w-3 mr-1" /> NOT NULL
@@ -521,7 +521,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                           id="edit-unique"
                           checked={editIsUnique}
                           onCheckedChange={setEditIsUnique}
-                          disabled={editIsPrimaryKey} // Primary keys are implicitly UNIQUE
                         />
                         <Label htmlFor="edit-unique" className="text-xs flex items-center">
                           <Lock className="h-3 w-3 mr-1" /> UNIQUE
@@ -628,9 +627,11 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                         isAutoIncrement={column.isAutoIncrement}
                         onTogglePrimaryKey={() => togglePrimaryKey(column.name)}
                         onToggleIndex={() => toggleIndex(column.name)}
-                        onToggleNotNull={() => data.onToggleNotNull?.(id, column.name)}
-                        onToggleUnique={() => data.onToggleUnique?.(id, column.name)}
-                        onToggleAutoIncrement={() => data.onToggleAutoIncrement?.(id, column.name)}
+                        onToggleNotNull={data.onToggleNotNull ? () => data.onToggleNotNull(id, column.name) : undefined}
+                        onToggleUnique={data.onToggleUnique ? () => data.onToggleUnique(id, column.name) : undefined}
+                        onToggleAutoIncrement={
+                          data.onToggleAutoIncrement ? () => data.onToggleAutoIncrement(id, column.name) : undefined
+                        }
                       />
                     </div>
                   </>
@@ -720,11 +721,6 @@ export function TableNode({ id, data, isConnectable, selected }: NodeProps) {
                     checked={isPrimaryKey}
                     onCheckedChange={(checked) => {
                       setIsPrimaryKey(checked)
-                      // If primary key is checked, automatically set NOT NULL and disable it
-                      if (checked) {
-                        setIsNotNull(true)
-                        setIsUnique(true)
-                      }
                     }}
                     // Disable if the table already has a primary key
                     disabled={hasPrimaryKey()}

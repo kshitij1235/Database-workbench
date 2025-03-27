@@ -2,17 +2,15 @@
 
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { Sun, Moon, Database, HelpCircle } from "lucide-react"
-import { ExportDropdown } from "./exportOptionDropDown"
+import { Sun, Moon, Database, Download } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 
 interface WorkbenchHeaderProps {
-  onExportDbml: () => void
-  onExportSql: () => void
+  onExport: () => void
 }
 
-export function WorkbenchHeader({ onExportDbml, onExportSql }: WorkbenchHeaderProps) {
+export function WorkbenchHeader({ onExport }: WorkbenchHeaderProps) {
   const { theme, setTheme } = useTheme()
 
   return (
@@ -32,9 +30,10 @@ export function WorkbenchHeader({ onExportDbml, onExportSql }: WorkbenchHeaderPr
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div>
-                <ExportDropdown onExportDbml={onExportDbml} onExportSql={onExportSql} />
-              </div>
+              <Button variant="outline" size="sm" className="h-8 gap-1" onClick={onExport}>
+                <Download className="h-3.5 w-3.5" />
+                <span>Export</span>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p className="text-xs">Export your schema</p>
